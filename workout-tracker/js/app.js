@@ -298,20 +298,9 @@ const pages = {
   }
 };
 
-// 다크모드 토글
+// 다크모드 고정
 function initTheme() {
-  const theme = localStorage.getItem('theme') || 'dark'; // 기본 다크모드
-  document.documentElement.setAttribute('data-theme', theme);
-  
-  const toggleBtn = document.getElementById('theme-toggle');
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
-      const currentTheme = document.documentElement.getAttribute('data-theme');
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', newTheme);
-      localStorage.setItem('theme', newTheme);
-    });
-  }
+  document.documentElement.setAttribute('data-theme', 'dark');
 }
 
 // 페이지 로드 시 초기화

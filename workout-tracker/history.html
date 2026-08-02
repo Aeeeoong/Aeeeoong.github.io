@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2563eb">
+  <title>운동 히스토리 - 운동 트래커</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="history">
+  <header>
+    <div class="header-content">
+      <h1>📚 운동 히스토리</h1>
+      <a href="index.html" style="color: var(--primary); text-decoration: none; font-weight: 600;">
+        ← 돌아가기
+      </a>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 필터 -->
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">운동 루틴 필터</label>
+        <select id="filter-type" class="form-select">
+          <option value="">전체</option>
+          <option value="하체">하체</option>
+          <option value="등">등</option>
+          <option value="가슴어깨">가슴 / 어깨</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 히스토리 목록 -->
+    <div id="history-container">
+      <!-- 동적으로 생성 -->
+    </div>
+
+    <!-- 데이터 관리 -->
+    <div class="card">
+      <h2 class="card-title">데이터 관리</h2>
+      <div style="display: grid; gap: 0.75rem; margin-top: 1rem;">
+        <button id="export-data" class="btn btn-primary">
+          💾 데이터 내보내기 (JSON)
+        </button>
+        <button id="import-data" class="btn" style="background: var(--text-secondary); color: white;">
+          📥 데이터 가져오기
+        </button>
+        <input type="file" id="import-file" accept=".json" style="display: none;">
+      </div>
+    </div>
+  </main>
+
+  <!-- 하단 네비게이션 -->
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item" data-page="dashboard">
+      <div class="nav-icon">🏠</div>
+      <div class="nav-label">홈</div>
+    </a>
+    <a href="record.html" class="nav-item" data-page="record">
+      <div class="nav-icon">📝</div>
+      <div class="nav-label">기록</div>
+    </a>
+    <a href="inbody.html" class="nav-item" data-page="inbody">
+      <div class="nav-icon">⚖️</div>
+      <div class="nav-label">인바디</div>
+    </a>
+    <a href="stats.html" class="nav-item" data-page="stats">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">통계</div>
+    </a>
+    <a href="history.html" class="nav-item" data-page="history">
+      <div class="nav-icon">📚</div>
+      <div class="nav-label">히스토리</div>
+    </a>
+  </nav>
+
+  <script src="js/storage.js"></script>
+  <script src="js/history.js"></script>
+</body>
+</html>

@@ -18,7 +18,7 @@ const chartOptions = {
 };
 
 // 인바디 차트 그리기
-function renderInbodyChart() {
+function renderInbodyChart(mode = 'all') {
   const records = storage.getInbodyRecords().reverse(); // 오래된 것부터
   
   if (records.length === 0) {
@@ -38,63 +38,167 @@ function renderInbodyChart() {
     return `${d.getMonth() + 1}/${d.getDate()}`;
   });
 
+  // Y축 범위 계산 함수
+  const calculateYRange = (data) => {
+    const values = data.filter(v => v != null);
+    if (values.length === 0) return { min: 0, max: 100 };
+    
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min;
+    const padding = range * 0.1 || 1; // 최소 1 단위 여유
+    
+    return {
+      min: Math.floor((min - padding) * 10) / 10,
+      max: Math.ceil((max + padding) * 10) / 10
+    };
+  };
+
+  let datasets = [];
+  let scales = {};
+
+  if (mode === 'all') {
+    // 전체보기 모드
+    datasets = [
+      {
+        label: '체중 (kg)',
+        data: records.map(r => r.weight),
+        borderColor: '#2563eb',
+        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+        tension: 0.3,
+        fill: true
+      },
+      {
+        label: '골격근량 (kg)',
+        data: records.map(r => r.muscle),
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        tension: 0.3,
+        fill: true
+      },
+      {
+        label: '체지방률 (%)',
+        data: records.map(r => r.bodyFat),
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        tension: 0.3,
+        fill: true,
+        yAxisID: 'y1'
+      }
+    ];
+    
+    scales = {
+      y: {
+        type: 'linear',
+        display: true,
+        position: 'left',
+        title: {
+          display: true,
+          text: '체중 / 골격근량 (kg)'
+        }
+      },
+      y1: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        title: {
+          display: true,
+          text: '체지방률 (%)'
+        },
+        grid: {
+          drawOnChartArea: false
+        }
+      }
+    };
+  } else if (mode === 'weight') {
+    // 체중만
+    const weightData = records.map(r => r.weight);
+    const range = calculateYRange(weightData);
+    
+    datasets = [{
+      label: '체중 (kg)',
+      data: weightData,
+      borderColor: '#2563eb',
+      backgroundColor: 'rgba(37, 99, 235, 0.2)',
+      tension: 0.3,
+      fill: true,
+      pointRadius: 5,
+      pointHoverRadius: 7
+    }];
+    
+    scales = {
+      y: {
+        min: range.min,
+        max: range.max,
+        title: {
+          display: true,
+          text: '체중 (kg)'
+        }
+      }
+    };
+  } else if (mode === 'muscle') {
+    // 골격근량만
+    const muscleData = records.map(r => r.muscle);
+    const range = calculateYRange(muscleData);
+    
+    datasets = [{
+      label: '골격근량 (kg)',
+      data: muscleData,
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16, 185, 129, 0.2)',
+      tension: 0.3,
+      fill: true,
+      pointRadius: 5,
+      pointHoverRadius: 7
+    }];
+    
+    scales = {
+      y: {
+        min: range.min,
+        max: range.max,
+        title: {
+          display: true,
+          text: '골격근량 (kg)'
+        }
+      }
+    };
+  } else if (mode === 'bodyfat') {
+    // 체지방률만
+    const bodyFatData = records.map(r => r.bodyFat);
+    const range = calculateYRange(bodyFatData);
+    
+    datasets = [{
+      label: '체지방률 (%)',
+      data: bodyFatData,
+      borderColor: '#f59e0b',
+      backgroundColor: 'rgba(245, 158, 11, 0.2)',
+      tension: 0.3,
+      fill: true,
+      pointRadius: 5,
+      pointHoverRadius: 7
+    }];
+    
+    scales = {
+      y: {
+        min: range.min,
+        max: range.max,
+        title: {
+          display: true,
+          text: '체지방률 (%)'
+        }
+      }
+    };
+  }
+
   inbodyChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: dates,
-      datasets: [
-        {
-          label: '체중 (kg)',
-          data: records.map(r => r.weight),
-          borderColor: '#2563eb',
-          backgroundColor: 'rgba(37, 99, 235, 0.1)',
-          tension: 0.3,
-          fill: true
-        },
-        {
-          label: '골격근량 (kg)',
-          data: records.map(r => r.muscle),
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          tension: 0.3,
-          fill: true
-        },
-        {
-          label: '체지방률 (%)',
-          data: records.map(r => r.bodyFat),
-          borderColor: '#f59e0b',
-          backgroundColor: 'rgba(245, 158, 11, 0.1)',
-          tension: 0.3,
-          fill: true,
-          yAxisID: 'y1'
-        }
-      ]
+      datasets: datasets
     },
     options: {
       ...chartOptions,
-      scales: {
-        y: {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          title: {
-            display: true,
-            text: '체중 / 골격근량 (kg)'
-          }
-        },
-        y1: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          title: {
-            display: true,
-            text: '체지방률 (%)'
-          },
-          grid: {
-            drawOnChartArea: false
-          }
-        }
-      }
+      scales: scales
     }
   });
 }
@@ -228,7 +332,21 @@ function updateExerciseSelect(routine) {
 // 페이지 초기화
 document.addEventListener('DOMContentLoaded', () => {
   // 인바디 차트
-  renderInbodyChart();
+  renderInbodyChart('all');
+  
+  // 인바디 탭 클릭 이벤트
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // 탭 활성화 상태 변경
+      tabButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      // 차트 다시 그리기
+      const tab = btn.dataset.tab;
+      renderInbodyChart(tab);
+    });
+  });
   
   // 운동 분포 차트
   renderDistributionChart();

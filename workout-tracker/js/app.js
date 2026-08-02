@@ -197,18 +197,20 @@ const pages = {
     }
     
     // 달력 렌더링
-    renderCalendar();
-    
-    // 달력 네비게이션
-    document.getElementById('prev-month').addEventListener('click', () => {
-      currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+    if (document.getElementById('workout-calendar')) {
       renderCalendar();
-    });
-    
-    document.getElementById('next-month').addEventListener('click', () => {
-      currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
-      renderCalendar();
-    });
+      
+      // 달력 네비게이션
+      document.getElementById('prev-month').addEventListener('click', () => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+        renderCalendar();
+      });
+      
+      document.getElementById('next-month').addEventListener('click', () => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+        renderCalendar();
+      });
+    }
   },
 
   // 운동 기록 입력 페이지

@@ -240,36 +240,158 @@ const pages = {
     const container = document.getElementById('exercise-form');
     
     container.innerHTML = exercises.map((exercise, index) => `
-      <div class="exercise-item">
-        <div class="exercise-name">${exercise}</div>
-        <div class="exercise-inputs">
-          <div class="input-group">
-            <label>무게 (kg)</label>
-            <input type="number" step="0.5" 
-                   id="weight-${index}" 
-                   placeholder="0">
-          </div>
-          <div class="input-group">
-            <label>세트</label>
-            <input type="number" 
-                   id="sets-${index}" 
-                   placeholder="0">
-          </div>
-          <div class="input-group">
-            <label>회</label>
-            <input type="number" 
-                   id="reps-${index}" 
-                   placeholder="0">
+      <div class="exercise-item" data-index="${index}">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <div class="exercise-name">${exercise}</div>
+          <div class="mode-toggle">
+            <button type="button" class="mode-btn active" data-mode="simple" data-index="${index}">
+              간편
+            </button>
+            <button type="button" class="mode-btn" data-mode="detailed" data-index="${index}">
+              상세
+            </button>
           </div>
         </div>
+        
+        <!-- 간편 모드 -->
+        <div id="simple-mode-${index}" class="input-mode">
+          <div class="exercise-inputs">
+            <div class="input-group">
+              <label>무게 (kg)</label>
+              <input type="number" step="0.5" 
+                     id="weight-${index}" 
+                     placeholder="0">
+            </div>
+            <div class="input-group">
+              <label>세트</label>
+              <input type="number" 
+                     id="sets-${index}" 
+                     placeholder="0">
+            </div>
+            <div class="input-group">
+              <label>회</label>
+              <input type="number" 
+                     id="reps-${index}" 
+                     placeholder="0">
+            </div>
+          </div>
+        </div>
+        
+        <!-- 상세 모드 -->
+        <div id="detailed-mode-${index}" class="input-mode" style="display: none;">
+          <div class="input-group">
+            <label>세트 수</label>
+            <input type="number" 
+                   id="sets-count-${index}" 
+                   placeholder="3"
+                   min="1"
+                   max="10"
+                   value="3"
+                   class="sets-count-input">
+          </div>
+          <div id="sets-detail-${index}" class="sets-detail-container">
+            <!-- 세트별 입력 필드가 동적으로 생성됨 -->
+          </div>
+        </div>
+        
         <div class="input-group">
           <label>코멘트</label>
           <input type="text" 
                  id="comment-${index}" 
-                 placeholder="예: 자세 좋음, 마지막 세트 힘듦">
+                 placeholder="예: 자세 좋음, 드랍세트, 마지막 세트 힘듦">
         </div>
       </div>
     `).join('');
+    
+    // 모드 토글 이벤트 리스너
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const index = e.target.dataset.index;
+        const mode = e.target.dataset.mode;
+        this.switchMode(index, mode);
+      });
+    });
+    
+    // 세트 수 변경 이벤트 리스너
+    document.querySelectorAll('.sets-count-input').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const index = e.target.id.split('-')[2];
+        const count = parseInt(e.target.value) || 3;
+        this.renderSetsDetail(index, count);
+      });
+    });
+    
+    // 초기 세트 상세 렌더링 (상세 모드용)
+    exercises.forEach((_, index) => {
+      this.renderSetsDetail(index, 3);
+    });
+  },
+  
+  switchMode(index, mode) {
+    const simpleMode = document.getElementById(`simple-mode-${index}`);
+    const detailedMode = document.getElementById(`detailed-mode-${index}`);
+    const buttons = document.querySelectorAll(`[data-index="${index}"].mode-btn`);
+    
+    buttons.forEach(btn => {
+      if (btn.dataset.mode === mode) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    
+    if (mode === 'simple') {
+      simpleMode.style.display = 'block';
+      detailedMode.style.display = 'none';
+    } else {
+      simpleMode.style.display = 'none';
+      detailedMode.style.display = 'block';
+    }
+  },
+  
+  renderSetsDetail(index, count) {
+    const container = document.getElementById(`sets-detail-${index}`);
+    if (!container) return;
+    
+    container.innerHTML = Array.from({ length: count }, (_, i) => `
+      <div class="set-detail-item">
+        <div class="set-number">${i + 1}세트</div>
+        <div class="set-inputs">
+          <div class="input-group">
+            <label>무게 (kg)</label>
+            <input type="number" step="0.5" 
+                   id="set-${index}-${i}-weight" 
+                   placeholder="0"
+                   class="set-input">
+          </div>
+          <div class="input-group">
+            <label>회</label>
+            <input type="number" 
+                   id="set-${index}-${i}-reps" 
+                   placeholder="0"
+                   class="set-input">
+          </div>
+          ${i < count - 1 ? `
+            <button type="button" class="copy-btn" onclick="pages.copyToNextSet(${index}, ${i})">
+              ↓
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `).join('');
+  },
+  
+  copyToNextSet(exerciseIndex, setIndex) {
+    const weight = document.getElementById(`set-${exerciseIndex}-${setIndex}-weight`).value;
+    const reps = document.getElementById(`set-${exerciseIndex}-${setIndex}-reps`).value;
+    
+    const nextWeight = document.getElementById(`set-${exerciseIndex}-${setIndex + 1}-weight`);
+    const nextReps = document.getElementById(`set-${exerciseIndex}-${setIndex + 1}-reps`);
+    
+    if (nextWeight && nextReps) {
+      nextWeight.value = weight;
+      nextReps.value = reps;
+    }
   },
 
   async saveWorkout() {
@@ -278,21 +400,71 @@ const pages = {
     const exercises = storage.data.settings.exercises[type];
     
     const workoutExercises = exercises.map((name, index) => {
-      const weight = document.getElementById(`weight-${index}`).value;
-      const sets = document.getElementById(`sets-${index}`).value;
-      const reps = document.getElementById(`reps-${index}`).value;
       const comment = document.getElementById(`comment-${index}`).value;
       
-      // 입력된 값이 있는 경우만 저장
-      if (weight || sets || reps || comment) {
-        return {
-          name,
-          weight: weight ? parseFloat(weight) : null,
-          sets: sets ? parseInt(sets) : null,
-          reps: reps ? parseInt(reps) : null,
-          comment: comment || ''
-        };
+      // 현재 모드 확인
+      const simpleModeVisible = document.getElementById(`simple-mode-${index}`).style.display !== 'none';
+      
+      if (simpleModeVisible) {
+        // 간편 모드
+        const weight = document.getElementById(`weight-${index}`).value;
+        const sets = document.getElementById(`sets-${index}`).value;
+        const reps = document.getElementById(`reps-${index}`).value;
+        
+        if (weight || sets || reps || comment) {
+          return {
+            name,
+            mode: 'simple',
+            weight: weight ? parseFloat(weight) : null,
+            sets: sets ? parseInt(sets) : null,
+            reps: reps ? parseInt(reps) : null,
+            comment: comment || ''
+          };
+        }
+      } else {
+        // 상세 모드
+        const setsCount = parseInt(document.getElementById(`sets-count-${index}`).value) || 0;
+        const setsDetail = [];
+        
+        for (let i = 0; i < setsCount; i++) {
+          const weightInput = document.getElementById(`set-${index}-${i}-weight`);
+          const repsInput = document.getElementById(`set-${index}-${i}-reps`);
+          
+          if (weightInput && repsInput) {
+            const weight = weightInput.value;
+            const reps = repsInput.value;
+            
+            if (weight || reps) {
+              setsDetail.push({
+                set: i + 1,
+                weight: weight ? parseFloat(weight) : null,
+                reps: reps ? parseInt(reps) : null
+              });
+            }
+          }
+        }
+        
+        if (setsDetail.length > 0 || comment) {
+          // 요약 정보 계산 (첫 세트 또는 평균)
+          const avgWeight = setsDetail.length > 0
+            ? setsDetail.reduce((sum, s) => sum + (s.weight || 0), 0) / setsDetail.length
+            : null;
+          const avgReps = setsDetail.length > 0
+            ? setsDetail.reduce((sum, s) => sum + (s.reps || 0), 0) / setsDetail.length
+            : null;
+          
+          return {
+            name,
+            mode: 'detailed',
+            weight: avgWeight,
+            sets: setsDetail.length,
+            reps: avgReps ? Math.round(avgReps) : null,
+            setsDetail: setsDetail,
+            comment: comment || ''
+          };
+        }
       }
+      
       return null;
     }).filter(e => e !== null);
 

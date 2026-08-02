@@ -35,21 +35,46 @@ async function renderHistory(filterType = '') {
       </div>
       
       <div style="display: grid; gap: 0.75rem; margin-top: 1rem;">
-        ${workout.exercises.map(ex => `
-          <div style="background: var(--bg-main); padding: 0.75rem; border-radius: 8px;">
-            <div style="font-weight: 600; margin-bottom: 0.5rem;">${ex.name}</div>
-            <div style="color: var(--text-secondary); font-size: 0.95rem;">
-              ${ex.weight ? `${ex.weight}kg` : ''} 
-              ${ex.sets ? `${ex.sets} 세트` : ''} 
-              ${ex.reps ? `${ex.reps}회` : ''}
-            </div>
-            ${ex.comment ? `
-              <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; font-style: italic;">
-                💬 ${ex.comment}
+        ${workout.exercises.map(ex => {
+          // 상세 모드인지 확인
+          const isDetailed = ex.mode === 'detailed' && ex.setsDetail && ex.setsDetail.length > 0;
+          
+          return `
+            <div style="background: var(--bg-main); padding: 0.75rem; border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <div style="font-weight: 600;">${ex.name}</div>
+                ${isDetailed ? '<span style="font-size: 0.75rem; color: var(--primary); background: var(--bg); padding: 0.25rem 0.5rem; border-radius: 4px;">상세</span>' : ''}
               </div>
-            ` : ''}
-          </div>
-        `).join('')}
+              
+              ${isDetailed ? `
+                <!-- 상세 모드: 세트별 표시 -->
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                  ${ex.setsDetail.map(set => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--bg); border-radius: 6px;">
+                      <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 600;">${set.set}세트</span>
+                      <span style="color: var(--text-primary); font-size: 0.875rem;">
+                        ${set.weight ? `${set.weight}kg` : '-'} × ${set.reps ? `${set.reps}회` : '-'}
+                      </span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : `
+                <!-- 간편 모드: 요약 표시 -->
+                <div style="color: var(--text-secondary); font-size: 0.95rem;">
+                  ${ex.weight ? `${ex.weight}kg` : ''} 
+                  ${ex.sets ? `${ex.sets} 세트` : ''} 
+                  ${ex.reps ? `${ex.reps}회` : ''}
+                </div>
+              `}
+              
+              ${ex.comment ? `
+                <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; font-style: italic;">
+                  💬 ${ex.comment}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('')}
       </div>
     </div>
   `).join('');

@@ -13,8 +13,9 @@
 <body data-page="dashboard">
   <header>
     <div class="header-content">
-      <h1>💪 운동 트래커</h1>
-      <div>
+      <h1>운동 트래커</h1>
+      <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <div class="theme-toggle" id="theme-toggle"></div>
         <button class="btn btn-primary" onclick="location.href='record.html'">기록하기</button>
       </div>
     </div>
@@ -79,23 +80,18 @@
   <!-- 하단 네비게이션 -->
   <nav class="bottom-nav">
     <a href="index.html" class="nav-item" data-page="dashboard">
-      <div class="nav-icon">🏠</div>
       <div class="nav-label">홈</div>
     </a>
     <a href="record.html" class="nav-item" data-page="record">
-      <div class="nav-icon">📝</div>
       <div class="nav-label">기록</div>
     </a>
     <a href="inbody.html" class="nav-item" data-page="inbody">
-      <div class="nav-icon">⚖️</div>
       <div class="nav-label">인바디</div>
     </a>
     <a href="stats.html" class="nav-item" data-page="stats">
-      <div class="nav-icon">📊</div>
       <div class="nav-label">통계</div>
     </a>
     <a href="history.html" class="nav-item" data-page="history">
-      <div class="nav-icon">📚</div>
       <div class="nav-label">히스토리</div>
     </a>
   </nav>

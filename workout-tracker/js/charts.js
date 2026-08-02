@@ -276,8 +276,27 @@ function updateExerciseSelect(routine) {
   renderExerciseChart(exercises[0]);
 }
 
+// 다크모드 토글
+function initTheme() {
+  const theme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  
+  const toggleBtn = document.getElementById('theme-toggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+    });
+  }
+}
+
 // 페이지 초기화
 document.addEventListener('DOMContentLoaded', () => {
+  // 다크모드 초기화
+  initTheme();
+  
   // 인바디 차트 (기본: 체중)
   renderInbodyChart('weight');
   

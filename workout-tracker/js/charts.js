@@ -18,8 +18,9 @@ const chartOptions = {
 };
 
 // 인바디 차트 그리기
-function renderInbodyChart(mode = 'weight') {
-  const records = storage.getInbodyRecords().reverse(); // 오래된 것부터
+async function renderInbodyChart(mode = 'weight') {
+  const allRecords = await storage.getInbodyRecords();
+  const records = allRecords.reverse(); // 오래된 것부터
   
   if (records.length === 0) {
     document.getElementById('inbody-chart').parentElement.innerHTML = 

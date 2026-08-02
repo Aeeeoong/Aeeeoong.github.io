@@ -1,9 +1,30 @@
-// 운동 트래커 - 데이터 저장 관리
+// 운동 트래커 - Firebase Firestore 데이터 저장 관리
 
 class WorkoutStorage {
   constructor() {
     this.STORAGE_KEY = 'workout_tracker_data';
-    this.data = this.loadData();
+    this.data = this.getDefaultData();
+    this.isFirebaseReady = false;
+    this.waitForFirebase();
+  }
+
+  // Firebase 준비 대기
+  async waitForFirebase() {
+    const maxWait = 50; // 5초 대기
+    let attempts = 0;
+    
+    while (!window.db && attempts < maxWait) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+    
+    if (window.db) {
+      this.isFirebaseReady = true;
+      console.log('✅ Firebase 연결 완료');
+    } else {
+      console.warn('⚠️ Firebase 연결 실패, localStorage 사용');
+      this.loadData(); // localStorage에서 로드
+    }
   }
 
   // 데이터 구조 초기화
@@ -41,20 +62,21 @@ class WorkoutStorage {
     };
   }
 
-  // 데이터 로드
+  // 데이터 로드 (localStorage 백업용)
   loadData() {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        this.data = JSON.parse(stored);
+        return;
       }
     } catch (error) {
       console.error('데이터 로드 실패:', error);
     }
-    return this.getDefaultData();
+    this.data = this.getDefaultData();
   }
 
-  // 데이터 저장
+  // 데이터 저장 (localStorage 백업용)
   saveData() {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
@@ -66,7 +88,7 @@ class WorkoutStorage {
   }
 
   // 운동 기록 추가
-  addWorkout(workout) {
+  async addWorkout(workout) {
     const newWorkout = {
       id: Date.now(),
       date: workout.date,
@@ -74,13 +96,41 @@ class WorkoutStorage {
       exercises: workout.exercises,
       createdAt: new Date().toISOString()
     };
-    this.data.workouts.push(newWorkout);
-    this.saveData();
+    
+    if (this.isFirebaseReady && window.db && window.userId) {
+      try {
+        await window.db.collection('users').doc(window.userId)
+          .collection('workouts').doc(String(newWorkout.id)).set(newWorkout);
+        console.log('✅ 운동 기록 저장됨 (Firebase)');
+      } catch (error) {
+        console.error('❌ Firebase 저장 실패:', error);
+        // 백업으로 localStorage 사용
+        this.data.workouts.push(newWorkout);
+        this.saveData();
+      }
+    } else {
+      // localStorage 사용
+      this.data.workouts.push(newWorkout);
+      this.saveData();
+    }
+    
     return newWorkout;
   }
 
   // 운동 기록 수정
-  updateWorkout(id, updates) {
+  async updateWorkout(id, updates) {
+    if (this.isFirebaseReady && window.db && window.userId) {
+      try {
+        await window.db.collection('users').doc(window.userId)
+          .collection('workouts').doc(String(id)).update(updates);
+        console.log('✅ 운동 기록 수정됨 (Firebase)');
+        return { id, ...updates };
+      } catch (error) {
+        console.error('❌ Firebase 수정 실패:', error);
+      }
+    }
+    
+    // localStorage 백업
     const index = this.data.workouts.findIndex(w => w.id === id);
     if (index !== -1) {
       this.data.workouts[index] = { ...this.data.workouts[index], ...updates };
@@ -91,7 +141,19 @@ class WorkoutStorage {
   }
 
   // 운동 기록 삭제
-  deleteWorkout(id) {
+  async deleteWorkout(id) {
+    if (this.isFirebaseReady && window.db && window.userId) {
+      try {
+        await window.db.collection('users').doc(window.userId)
+          .collection('workouts').doc(String(id)).delete();
+        console.log('✅ 운동 기록 삭제됨 (Firebase)');
+        return true;
+      } catch (error) {
+        console.error('❌ Firebase 삭제 실패:', error);
+      }
+    }
+    
+    // localStorage 백업
     const index = this.data.workouts.findIndex(w => w.id === id);
     if (index !== -1) {
       this.data.workouts.splice(index, 1);
@@ -102,35 +164,73 @@ class WorkoutStorage {
   }
 
   // 운동 기록 가져오기
-  getWorkouts(filters = {}) {
+  async getWorkouts(filters = {}) {
+    if (this.isFirebaseReady && window.db && window.userId) {
+      try {
+        let query = window.db.collection('users').doc(window.userId).collection('workouts');
+        
+        // 타입 필터
+        if (filters.type) {
+          query = query.where('type', '==', filters.type);
+        }
+        
+        const snapshot = await query.get();
+        let workouts = [];
+        snapshot.forEach(doc => {
+          workouts.push(doc.data());
+        });
+        
+        // 날짜 필터 (클라이언트 사이드)
+        if (filters.startDate) {
+          workouts = workouts.filter(w => new Date(w.date) >= new Date(filters.startDate));
+        }
+        if (filters.endDate) {
+          workouts = workouts.filter(w => new Date(w.date) <= new Date(filters.endDate));
+        }
+        
+        // 정렬 (최신순)
+        workouts.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        return workouts;
+      } catch (error) {
+        console.error('❌ Firebase 조회 실패:', error);
+      }
+    }
+    
+    // localStorage 백업
     let workouts = [...this.data.workouts];
     
-    // 날짜 필터
     if (filters.startDate) {
       workouts = workouts.filter(w => new Date(w.date) >= new Date(filters.startDate));
     }
     if (filters.endDate) {
       workouts = workouts.filter(w => new Date(w.date) <= new Date(filters.endDate));
     }
-    
-    // 타입 필터
     if (filters.type) {
       workouts = workouts.filter(w => w.type === filters.type);
     }
     
-    // 정렬 (최신순)
     workouts.sort((a, b) => new Date(b.date) - new Date(a.date));
-    
     return workouts;
   }
 
   // 특정 운동 기록 가져오기
-  getWorkout(id) {
+  async getWorkout(id) {
+    if (this.isFirebaseReady && window.db && window.userId) {
+      try {
+        const doc = await window.db.collection('users').doc(window.userId)
+          .collection('workouts').doc(String(id)).get();
+        return doc.exists ? doc.data() : null;
+      } catch (error) {
+        console.error('❌ Firebase 조회 실패:', error);
+      }
+    }
+    
     return this.data.workouts.find(w => w.id === id);
   }
 
   // 인바디 기록 추가
-  addInbody(inbody) {
+  async addInbody(inbody) {
     const newInbody = {
       id: Date.now(),
       date: inbody.date,
@@ -139,13 +239,41 @@ class WorkoutStorage {
       bodyFat: parseFloat(inbody.bodyFat),
       createdAt: new Date().toISOString()
     };
-    this.data.inbody.push(newInbody);
-    this.saveData();
+    
+    if (this.isFirebaseReady && window.db && window.userId) {
+      try {
+        await window.db.collection('users').doc(window.userId)
+          .collection('inbody').doc(String(newInbody.id)).set(newInbody);
+        console.log('✅ 인바디 기록 저장됨 (Firebase)');
+      } catch (error) {
+        console.error('❌ Firebase 저장 실패:', error);
+        this.data.inbody.push(newInbody);
+        this.saveData();
+      }
+    } else {
+      this.data.inbody.push(newInbody);
+      this.saveData();
+    }
+    
     return newInbody;
   }
 
   // 인바디 기록 가져오기
-  getInbodyRecords(limit = null) {
+  async getInbodyRecords(limit = null) {
+    if (this.isFirebaseReady && window.db && window.userId) {
+      try {
+        const snapshot = await window.db.collection('users').doc(window.userId)
+          .collection('inbody').orderBy('date', 'desc').get();
+        let records = [];
+        snapshot.forEach(doc => {
+          records.push(doc.data());
+        });
+        return limit ? records.slice(0, limit) : records;
+      } catch (error) {
+        console.error('❌ Firebase 조회 실패:', error);
+      }
+    }
+    
     const records = [...this.data.inbody].sort((a, b) => 
       new Date(b.date) - new Date(a.date)
     );
@@ -153,7 +281,20 @@ class WorkoutStorage {
   }
 
   // 최신 인바디 기록
-  getLatestInbody() {
+  async getLatestInbody() {
+    if (this.isFirebaseReady && window.db && window.userId) {
+      try {
+        const snapshot = await window.db.collection('users').doc(window.userId)
+          .collection('inbody').orderBy('date', 'desc').limit(1).get();
+        if (!snapshot.empty) {
+          return snapshot.docs[0].data();
+        }
+        return null;
+      } catch (error) {
+        console.error('❌ Firebase 조회 실패:', error);
+      }
+    }
+    
     if (this.data.inbody.length === 0) return null;
     return this.data.inbody.sort((a, b) => 
       new Date(b.date) - new Date(a.date)
@@ -161,10 +302,11 @@ class WorkoutStorage {
   }
 
   // 특정 운동 기구의 무게 추이
-  getExerciseProgress(exerciseName) {
+  async getExerciseProgress(exerciseName) {
     const progress = [];
+    const workouts = await this.getWorkouts();
     
-    this.data.workouts
+    workouts
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .forEach(workout => {
         const exercise = workout.exercises.find(e => e.name === exerciseName);
@@ -183,18 +325,19 @@ class WorkoutStorage {
   }
 
   // 운동 통계
-  getWorkoutStats() {
-    const totalWorkouts = this.data.workouts.length;
+  async getWorkoutStats() {
+    const workouts = await this.getWorkouts();
+    const totalWorkouts = workouts.length;
     const workoutsByType = {};
     
-    this.data.workouts.forEach(workout => {
+    workouts.forEach(workout => {
       workoutsByType[workout.type] = (workoutsByType[workout.type] || 0) + 1;
     });
     
     // 최근 7일 운동 횟수
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const recentWorkouts = this.data.workouts.filter(w => 
+    const recentWorkouts = workouts.filter(w => 
       new Date(w.date) >= sevenDaysAgo
     ).length;
     
@@ -202,9 +345,7 @@ class WorkoutStorage {
       totalWorkouts,
       workoutsByType,
       recentWorkouts,
-      lastWorkout: this.data.workouts.length > 0 
-        ? this.getWorkouts()[0] 
-        : null
+      lastWorkout: workouts.length > 0 ? workouts[0] : null
     };
   }
 

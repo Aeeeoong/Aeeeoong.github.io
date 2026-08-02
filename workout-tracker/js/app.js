@@ -58,7 +58,7 @@ const utils = {
 // 달력 관련
 let currentCalendarDate = new Date();
 
-function renderCalendar() {
+async function renderCalendar() {
   try {
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
@@ -92,7 +92,7 @@ function renderCalendar() {
     const prevLastDate = prevLastDay.getDate();
     
     // 운동 기록 가져오기
-    const allWorkouts = storage.getWorkouts();
+    const allWorkouts = await storage.getWorkouts();
     const workoutDates = new Set(allWorkouts.map(w => w.date));
     
     // 오늘 날짜
@@ -150,10 +150,10 @@ function renderCalendar() {
 // 페이지별 초기화 함수
 const pages = {
   // 메인 대시보드
-  initDashboard() {
-    const stats = storage.getWorkoutStats();
-    const latestInbody = storage.getLatestInbody();
-    const recentWorkouts = storage.getWorkouts().slice(0, 5);
+  async initDashboard() {
+    const stats = await storage.getWorkoutStats();
+    const latestInbody = await storage.getLatestInbody();
+    const recentWorkouts = (await storage.getWorkouts()).slice(0, 5);
 
     // 통계 업데이트
     document.getElementById('total-workouts').textContent = stats.totalWorkouts;
@@ -167,7 +167,7 @@ const pages = {
         utils.formatNumber(latestInbody.muscle);
       
       // 이전 인바디와 비교
-      const inbodyRecords = storage.getInbodyRecords();
+      const inbodyRecords = await storage.getInbodyRecords();
       if (inbodyRecords.length > 1) {
         const previous = inbodyRecords[1];
         const weightChange = latestInbody.weight - previous.weight;
@@ -201,17 +201,17 @@ const pages = {
     
     // 달력 렌더링
     if (document.getElementById('workout-calendar')) {
-      renderCalendar();
+      await renderCalendar();
       
       // 달력 네비게이션
-      document.getElementById('prev-month').addEventListener('click', () => {
+      document.getElementById('prev-month').addEventListener('click', async () => {
         currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
-        renderCalendar();
+        await renderCalendar();
       });
       
-      document.getElementById('next-month').addEventListener('click', () => {
+      document.getElementById('next-month').addEventListener('click', async () => {
         currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
-        renderCalendar();
+        await renderCalendar();
       });
     }
   },
@@ -230,8 +230,8 @@ const pages = {
     this.renderExerciseForm(typeSelect.value);
 
     // 저장 버튼
-    document.getElementById('save-workout').addEventListener('click', () => {
-      this.saveWorkout();
+    document.getElementById('save-workout').addEventListener('click', async () => {
+      await this.saveWorkout();
     });
   },
 
@@ -272,7 +272,7 @@ const pages = {
     `).join('');
   },
 
-  saveWorkout() {
+  async saveWorkout() {
     const date = document.getElementById('workout-date').value;
     const type = document.getElementById('workout-type').value;
     const exercises = storage.data.settings.exercises[type];
@@ -301,7 +301,7 @@ const pages = {
       return;
     }
 
-    storage.addWorkout({
+    await storage.addWorkout({
       date,
       type,
       exercises: workoutExercises
@@ -312,12 +312,12 @@ const pages = {
   },
 
   // 인바디 기록 페이지
-  initInbody() {
+  async initInbody() {
     const dateInput = document.getElementById('inbody-date');
     dateInput.value = utils.getTodayString();
 
     // 최근 인바디 표시
-    const latest = storage.getLatestInbody();
+    const latest = await storage.getLatestInbody();
     if (latest) {
       document.getElementById('last-weight').textContent = 
         `최근: ${utils.formatNumber(latest.weight)}kg`;
@@ -328,15 +328,15 @@ const pages = {
     }
 
     // 저장 버튼
-    document.getElementById('save-inbody').addEventListener('click', () => {
-      this.saveInbody();
+    document.getElementById('save-inbody').addEventListener('click', async () => {
+      await this.saveInbody();
     });
 
     // 인바디 히스토리
-    this.renderInbodyHistory();
+    await this.renderInbodyHistory();
   },
 
-  saveInbody() {
+  async saveInbody() {
     const date = document.getElementById('inbody-date').value;
     const weight = document.getElementById('weight').value;
     const muscle = document.getElementById('muscle').value;
@@ -347,7 +347,7 @@ const pages = {
       return;
     }
 
-    storage.addInbody({
+    await storage.addInbody({
       date,
       weight,
       muscle,
@@ -362,11 +362,11 @@ const pages = {
     document.getElementById('bodyfat').value = '';
     
     // 히스토리 갱신
-    this.renderInbodyHistory();
+    await this.renderInbodyHistory();
   },
 
-  renderInbodyHistory() {
-    const records = storage.getInbodyRecords(10);
+  async renderInbodyHistory() {
+    const records = await storage.getInbodyRecords(10);
     const container = document.getElementById('inbody-history');
     
     if (records.length === 0) {

@@ -1,8 +1,8 @@
 // 운동 트래커 - 히스토리 페이지
 
-function renderHistory(filterType = '') {
+async function renderHistory(filterType = '') {
   const filters = filterType ? { type: filterType } : {};
-  const workouts = storage.getWorkouts(filters);
+  const workouts = await storage.getWorkouts(filters);
   const container = document.getElementById('history-container');
   
   if (workouts.length === 0) {
@@ -55,11 +55,11 @@ function renderHistory(filterType = '') {
   `).join('');
 }
 
-function deleteWorkout(id) {
+async function deleteWorkout(id) {
   if (confirm('이 운동 기록을 삭제하시겠습니까?')) {
-    storage.deleteWorkout(id);
+    await storage.deleteWorkout(id);
     const filterType = document.getElementById('filter-type').value;
-    renderHistory(filterType);
+    await renderHistory(filterType);
   }
 }
 
@@ -115,16 +115,16 @@ function initTheme() {
 }
 
 // 페이지 초기화
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // 다크모드 초기화
   initTheme();
   
   // 초기 렌더링
-  renderHistory();
+  await renderHistory();
   
   // 필터 변경
-  document.getElementById('filter-type').addEventListener('change', (e) => {
-    renderHistory(e.target.value);
+  document.getElementById('filter-type').addEventListener('change', async (e) => {
+    await renderHistory(e.target.value);
   });
   
   // 데이터 내보내기
@@ -134,15 +134,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('import-data').addEventListener('click', importData);
   
   // 파일 선택
-  document.getElementById('import-file').addEventListener('change', (e) => {
+  document.getElementById('import-file').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const success = storage.importData(event.target.result);
         if (success) {
           alert('데이터를 성공적으로 가져왔습니다! 📥');
-          renderHistory();
+          await renderHistory();
         } else {
           alert('데이터 가져오기 실패. JSON 형식을 확인해주세요.');
         }

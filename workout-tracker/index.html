@@ -21,30 +21,35 @@
   </header>
 
   <main class="container">
-    <!-- 통계 카드 -->
-    <div class="stats-grid">
-      <div class="stat-card" style="background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%)">
-        <div class="stat-label">총 운동 횟수</div>
-        <div class="stat-value" id="total-workouts">0</div>
-        <div class="stat-change">기록 시작 이후</div>
+    <!-- 통계 요약 -->
+    <div class="stats-compact">
+      <div class="stat-item">
+        <div class="stat-compact-label">총 운동</div>
+        <div class="stat-compact-value" id="total-workouts">0</div>
       </div>
-
-      <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%)">
-        <div class="stat-label">최근 7일 운동</div>
-        <div class="stat-value" id="recent-workouts">0</div>
-        <div class="stat-change">회</div>
+      <div class="stat-item">
+        <div class="stat-compact-label">7일</div>
+        <div class="stat-compact-value" id="recent-workouts">0</div>
       </div>
-
-      <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%)">
-        <div class="stat-label">현재 체중</div>
-        <div class="stat-value" id="current-weight">-</div>
-        <div class="stat-change" id="weight-change">kg</div>
+      <div class="stat-item">
+        <div class="stat-compact-label">체중</div>
+        <div class="stat-compact-value" id="current-weight">-</div>
       </div>
+      <div class="stat-item">
+        <div class="stat-compact-label">근육</div>
+        <div class="stat-compact-value" id="current-muscle">-</div>
+      </div>
+    </div>
 
-      <div class="stat-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)">
-        <div class="stat-label">골격근량</div>
-        <div class="stat-value" id="current-muscle">-</div>
-        <div class="stat-change" id="muscle-change">kg</div>
+    <!-- 운동 달력 -->
+    <div class="card">
+      <div class="card-header">
+        <button class="calendar-nav-btn" id="prev-month">&lt;</button>
+        <h2 class="card-title" id="calendar-month">2026년 8월</h2>
+        <button class="calendar-nav-btn" id="next-month">&gt;</button>
+      </div>
+      <div class="calendar" id="workout-calendar">
+        <!-- 동적으로 생성 -->
       </div>
     </div>
 

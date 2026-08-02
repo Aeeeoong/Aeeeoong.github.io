@@ -254,37 +254,98 @@ h1 {
   font-size: 0.95rem;
 }
 
-/* 통계 카드 */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+/* 통계 요약 (간소화) */
+.stats-compact {
+  display: flex;
   gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: white;
-  padding: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-card);
   border-radius: 12px;
-  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
 }
 
-.stat-label {
-  font-size: 0.875rem;
-  opacity: 0.9;
-  margin-bottom: 0.5rem;
+.stat-item {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem;
+  min-width: 70px;
 }
 
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
+.stat-compact-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
   margin-bottom: 0.25rem;
 }
 
-.stat-change {
+.stat-compact-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* 달력 */
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.calendar-day-header {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0.5rem;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
   font-size: 0.875rem;
-  opacity: 0.8;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.calendar-day:hover {
+  background: var(--bg-main);
+}
+
+.calendar-day.empty {
+  cursor: default;
+  color: var(--text-secondary);
+  opacity: 0.3;
+}
+
+.calendar-day.has-workout {
+  background: var(--gradient-primary);
+  color: white;
+  font-weight: 600;
+}
+
+.calendar-day.today {
+  border-color: var(--primary);
+}
+
+.calendar-nav-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.calendar-nav-btn:hover {
+  background: var(--bg-main);
 }
 
 /* 히스토리 */

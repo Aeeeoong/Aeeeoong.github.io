@@ -149,7 +149,7 @@ const pages = {
                    placeholder="0">
           </div>
           <div class="input-group">
-            <label>렙</label>
+            <label>회</label>
             <input type="number" 
                    id="reps-${index}" 
                    placeholder="0">

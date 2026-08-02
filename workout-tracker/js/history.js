@@ -41,7 +41,7 @@ function renderHistory(filterType = '') {
             <div style="color: var(--text-secondary); font-size: 0.95rem;">
               ${ex.weight ? `${ex.weight}kg` : ''} 
               ${ex.sets ? `${ex.sets} 세트` : ''} 
-              ${ex.reps ? `${ex.reps} 렙` : ''}
+              ${ex.reps ? `${ex.reps}회` : ''}
             </div>
             ${ex.comment ? `
               <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; font-style: italic;">

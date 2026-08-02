@@ -155,7 +155,7 @@ function renderExerciseChart(exerciseName) {
               const record = progress[index];
               let info = [];
               if (record.sets) info.push(`${record.sets} 세트`);
-              if (record.reps) info.push(`${record.reps} 렙`);
+              if (record.reps) info.push(`${record.reps}회`);
               if (record.comment) info.push(record.comment);
               return info.join(' / ');
             }

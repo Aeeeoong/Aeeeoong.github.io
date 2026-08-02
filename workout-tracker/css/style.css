@@ -289,16 +289,16 @@ h1 {
 .calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
 }
 
 .calendar-day-header {
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-secondary);
-  padding: 0.5rem;
+  padding: 0.25rem;
 }
 
 .calendar-day {
@@ -306,11 +306,12 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  font-size: 0.875rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid transparent;
+  min-height: 32px;
 }
 
 .calendar-day:hover {

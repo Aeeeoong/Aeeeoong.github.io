@@ -152,8 +152,8 @@ async function renderInbodyChart(mode = 'weight') {
 }
 
 // 운동별 중량 추이 차트
-function renderExerciseChart(exerciseName) {
-  const progress = storage.getExerciseProgress(exerciseName);
+async function renderExerciseChart(exerciseName) {
+  const progress = await storage.getExerciseProgress(exerciseName);
   
   if (progress.length === 0) {
     document.getElementById('exercise-chart').parentElement.innerHTML = 
@@ -219,8 +219,8 @@ function renderExerciseChart(exerciseName) {
 }
 
 // 운동 분포 차트
-function renderDistributionChart() {
-  const stats = storage.getWorkoutStats();
+async function renderDistributionChart() {
+  const stats = await storage.getWorkoutStats();
   const types = Object.keys(stats.workoutsByType);
   const counts = Object.values(stats.workoutsByType);
   

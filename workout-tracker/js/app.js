@@ -93,7 +93,6 @@ const pages = {
     if (recentWorkouts.length === 0) {
       historyList.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">💪</div>
           <div class="empty-state-text">아직 운동 기록이 없습니다</div>
           <a href="record.html" class="btn btn-primary">첫 운동 기록하기</a>
         </div>
@@ -301,7 +300,7 @@ const pages = {
 
 // 다크모드 토글
 function initTheme() {
-  const theme = localStorage.getItem('theme') || 'light';
+  const theme = localStorage.getItem('theme') || 'dark'; // 기본 다크모드
   document.documentElement.setAttribute('data-theme', theme);
   
   const toggleBtn = document.getElementById('theme-toggle');

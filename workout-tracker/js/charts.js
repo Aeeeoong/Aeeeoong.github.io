@@ -278,7 +278,7 @@ function updateExerciseSelect(routine) {
 
 // 다크모드 토글
 function initTheme() {
-  const theme = localStorage.getItem('theme') || 'light';
+  const theme = localStorage.getItem('theme') || 'dark'; // 기본 다크모드
   document.documentElement.setAttribute('data-theme', theme);
   
   const toggleBtn = document.getElementById('theme-toggle');

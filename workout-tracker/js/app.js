@@ -59,89 +59,92 @@ const utils = {
 let currentCalendarDate = new Date();
 
 function renderCalendar() {
-  const year = currentCalendarDate.getFullYear();
-  const month = currentCalendarDate.getMonth();
-  
-  // 월 표시
-  document.getElementById('calendar-month').textContent = 
-    `${year}년 ${month + 1}월`;
-  
-  // 달력 생성
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const prevLastDay = new Date(year, month, 0);
-  
-  const firstDayOfWeek = firstDay.getDay();
-  const lastDate = lastDay.getDate();
-  const prevLastDate = prevLastDay.getDate();
-  
-  const calendar = document.getElementById('workout-calendar');
-  calendar.innerHTML = '';
-  
-  // 요일 헤더
-  ['일', '월', '화', '수', '목', '금', '토'].forEach(day => {
-    const header = document.createElement('div');
-    header.className = 'calendar-day-header';
-    header.textContent = day;
-    calendar.appendChild(header);
-  });
-  
-  // 이전 달 날짜
-  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-    const day = document.createElement('div');
-    day.className = 'calendar-day empty';
-    day.textContent = prevLastDate - i;
-    calendar.appendChild(day);
-  }
-  
-  // 이번 달 날짜
-  const workouts = storage.getWorkouts({
-    startDate: utils.formatDate(firstDay),
-    endDate: utils.formatDate(lastDay)
-  });
-  
-  const workoutDates = new Set(workouts.map(w => w.date));
-  const today = utils.formatDate(new Date());
-  
-  for (let date = 1; date <= lastDate; date++) {
-    const day = document.createElement('div');
-    const dateStr = utils.formatDate(new Date(year, month, date));
+  try {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
     
-    day.className = 'calendar-day';
-    day.textContent = date;
-    
-    if (workoutDates.has(dateStr)) {
-      day.classList.add('has-workout');
+    // 월 표시
+    const monthTitle = document.getElementById('calendar-month');
+    if (monthTitle) {
+      monthTitle.textContent = `${year}년 ${month + 1}월`;
     }
     
-    if (dateStr === today) {
-      day.classList.add('today');
-    }
+    const calendar = document.getElementById('workout-calendar');
+    if (!calendar) return;
     
-    day.addEventListener('click', () => {
-      if (workoutDates.has(dateStr)) {
-        // 해당 날짜의 운동 기록 표시
-        const dayWorkouts = workouts.filter(w => w.date === dateStr);
-        showWorkoutDetail(dayWorkouts);
-      }
+    calendar.innerHTML = '';
+    
+    // 요일 헤더
+    ['일', '월', '화', '수', '목', '금', '토'].forEach(day => {
+      const header = document.createElement('div');
+      header.className = 'calendar-day-header';
+      header.textContent = day;
+      calendar.appendChild(header);
     });
     
-    calendar.appendChild(day);
+    // 달력 날짜 계산
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const prevLastDay = new Date(year, month, 0);
+    
+    const firstDayOfWeek = firstDay.getDay();
+    const lastDate = lastDay.getDate();
+    const prevLastDate = prevLastDay.getDate();
+    
+    // 운동 기록 가져오기
+    const allWorkouts = storage.getWorkouts();
+    const workoutDates = new Set(allWorkouts.map(w => w.date));
+    
+    // 오늘 날짜
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    // 이전 달 날짜
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const day = document.createElement('div');
+      day.className = 'calendar-day empty';
+      day.textContent = prevLastDate - i;
+      calendar.appendChild(day);
+    }
+    
+    // 이번 달 날짜
+    for (let date = 1; date <= lastDate; date++) {
+      const day = document.createElement('div');
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+      
+      day.className = 'calendar-day';
+      day.textContent = date;
+      
+      if (workoutDates.has(dateStr)) {
+        day.classList.add('has-workout');
+        day.style.cursor = 'pointer';
+        day.addEventListener('click', () => {
+          const dayWorkouts = allWorkouts.filter(w => w.date === dateStr);
+          if (dayWorkouts.length > 0) {
+            const workout = dayWorkouts[0];
+            alert(`${dateStr}\n\n${workout.type} 운동\n${workout.exercises.length}개 운동 완료`);
+          }
+        });
+      }
+      
+      if (dateStr === todayStr) {
+        day.classList.add('today');
+      }
+      
+      calendar.appendChild(day);
+    }
+    
+    // 다음 달 날짜
+    const remainingDays = 42 - (firstDayOfWeek + lastDate);
+    for (let date = 1; date <= remainingDays; date++) {
+      const day = document.createElement('div');
+      day.className = 'calendar-day empty';
+      day.textContent = date;
+      calendar.appendChild(day);
+    }
+  } catch (error) {
+    console.error('달력 렌더링 오류:', error);
   }
-  
-  // 다음 달 날짜
-  const remainingDays = 42 - (firstDayOfWeek + lastDate);
-  for (let date = 1; date <= remainingDays; date++) {
-    const day = document.createElement('div');
-    day.className = 'calendar-day empty';
-    day.textContent = date;
-    calendar.appendChild(day);
-  }
-}
-
-function showWorkoutDetail(workouts) {
-  const workout = workouts[0];
-  alert(`${utils.displayDate(workout.date)}\n\n${workout.type} 운동\n${workout.exercises.length}개 운동 완료`);
 }
 
 // 페이지별 초기화 함수

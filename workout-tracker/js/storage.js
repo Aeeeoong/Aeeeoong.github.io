@@ -310,14 +310,36 @@ class WorkoutStorage {
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .forEach(workout => {
         const exercise = workout.exercises.find(e => e.name === exerciseName);
-        if (exercise && exercise.weight) {
-          progress.push({
-            date: workout.date,
-            weight: parseFloat(exercise.weight),
-            sets: parseInt(exercise.sets) || 0,
-            reps: parseInt(exercise.reps) || 0,
-            comment: exercise.comment || ''
-          });
+        if (exercise) {
+          let weight, sets, reps;
+          
+          // 상세 모드인 경우 최대 무게 사용
+          if (exercise.mode === 'detailed' && exercise.setsDetail && exercise.setsDetail.length > 0) {
+            const maxWeightSet = exercise.setsDetail.reduce((max, set) => 
+              (set.weight || 0) > (max.weight || 0) ? set : max
+            , exercise.setsDetail[0]);
+            
+            weight = maxWeightSet.weight;
+            sets = exercise.setsDetail.length;
+            reps = maxWeightSet.reps;
+          } else {
+            // 간편 모드 또는 기존 데이터
+            weight = exercise.weight;
+            sets = exercise.sets;
+            reps = exercise.reps;
+          }
+          
+          if (weight) {
+            progress.push({
+              date: workout.date,
+              weight: parseFloat(weight),
+              sets: parseInt(sets) || 0,
+              reps: parseInt(reps) || 0,
+              comment: exercise.comment || '',
+              mode: exercise.mode || 'simple',
+              setsDetail: exercise.setsDetail || null
+            });
+          }
         }
       });
     

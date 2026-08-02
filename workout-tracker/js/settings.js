@@ -337,8 +337,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 네비게이션 활성화
   const navItems = document.querySelectorAll('.nav-item');
   navItems.forEach(item => {
-    const href = item.getAttribute('href');
-    if (href && href.includes('settings.html')) {
+    if (item.getAttribute('data-page') === 'settings') {
       item.classList.add('active');
     }
   });

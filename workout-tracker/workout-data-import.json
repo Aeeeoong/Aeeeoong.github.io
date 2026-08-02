@@ -1,0 +1,476 @@
+{
+  "workouts": [
+    {
+      "id": 1719792000000,
+      "date": "2024-07-01",
+      "type": "등",
+      "exercises": [
+        {
+          "name": "랫풀다운",
+          "mode": "simple",
+          "weight": 35,
+          "sets": 4,
+          "reps": 12,
+          "comment": "1~2세트는 할만함. 3세트부터 힘듦. 4세트 마지막 4개는 팔로 한 느낌."
+        },
+        {
+          "name": "MTS rows",
+          "mode": "simple",
+          "weight": 30,
+          "sets": 4,
+          "reps": 12,
+          "comment": "힘들지만 할만함."
+        },
+        {
+          "name": "아이소 랫풀다운",
+          "mode": "simple",
+          "weight": 10,
+          "sets": 4,
+          "reps": 12,
+          "comment": "자세를 아직 잘 모르겠음. 광배 집중하려고 노력."
+        },
+        {
+          "name": "어시스트 풀업",
+          "mode": "simple",
+          "weight": 70,
+          "sets": 4,
+          "reps": 12,
+          "comment": "아이소를 가볍게 해서 그런지 평소보다 할만함."
+        },
+        {
+          "name": "오버헤드 프레스",
+          "mode": "simple",
+          "weight": 23,
+          "sets": 4,
+          "reps": 15,
+          "comment": "마지막 세트 너무 힘듦."
+        }
+      ],
+      "createdAt": "2024-07-01T00:00:00.000Z"
+    },
+    {
+      "id": 1719964800000,
+      "date": "2024-07-03",
+      "type": "가슴어깨",
+      "exercises": [
+        {
+          "name": "체스트 프레스",
+          "mode": "simple",
+          "weight": 31.5,
+          "sets": 4,
+          "reps": 15,
+          "comment": "마지막 세트 조금 힘듦."
+        },
+        {
+          "name": "플라이",
+          "mode": "simple",
+          "weight": 60,
+          "sets": 4,
+          "reps": 15,
+          "comment": "의자 높이 올려가며 수행. 처음엔 어깨 자극. 3세트부터 높이 맞음. 팔 힘은 덜 쓰는 느낌."
+        },
+        {
+          "name": "복근",
+          "mode": "simple",
+          "weight": 0,
+          "sets": 4,
+          "reps": 15,
+          "comment": "매우 힘듦."
+        },
+        {
+          "name": "케이블 푸시다운",
+          "mode": "simple",
+          "weight": 20,
+          "sets": 4,
+          "reps": 15,
+          "comment": "자극은 강함. 무게는 할만함."
+        },
+        {
+          "name": "어시스트 딥",
+          "mode": "simple",
+          "weight": 70,
+          "sets": 3,
+          "reps": 12,
+          "comment": "파트너 기다리면서 수행."
+        }
+      ],
+      "createdAt": "2024-07-03T00:00:00.000Z"
+    },
+    {
+      "id": 1720137600000,
+      "date": "2024-07-05",
+      "type": "하체",
+      "exercises": [
+        {
+          "name": "브이스쿼트",
+          "mode": "simple",
+          "weight": 25,
+          "sets": 4,
+          "reps": 15,
+          "comment": "너무 졸림. 무거운지 판단 어려움."
+        },
+        {
+          "name": "레그프레스",
+          "mode": "simple",
+          "weight": 35,
+          "sets": 4,
+          "reps": 15,
+          "comment": "3세트부터 힘듦."
+        },
+        {
+          "name": "레그익스텐션",
+          "mode": "simple",
+          "weight": 18.2,
+          "sets": 4,
+          "reps": 15,
+          "comment": "마지막쯤 되면 죽겠음."
+        },
+        {
+          "name": "어브덕션",
+          "mode": "simple",
+          "weight": 30,
+          "sets": 3,
+          "reps": 15,
+          "comment": "시간 초과. 운동 종료."
+        },
+        {
+          "name": "어덕션",
+          "mode": "simple",
+          "weight": 43,
+          "sets": 3,
+          "reps": 15,
+          "comment": ""
+        }
+      ],
+      "createdAt": "2024-07-05T00:00:00.000Z"
+    },
+    {
+      "id": 1720396800000,
+      "date": "2024-07-08",
+      "type": "등",
+      "exercises": [
+        {
+          "name": "랫풀다운",
+          "mode": "simple",
+          "weight": 35,
+          "sets": 4,
+          "reps": 12,
+          "comment": "4세트는 8개부터 어려움."
+        },
+        {
+          "name": "MTS rows",
+          "mode": "simple",
+          "weight": 30,
+          "sets": 4,
+          "reps": 12,
+          "comment": "할만함."
+        },
+        {
+          "name": "아이소 랫풀다운",
+          "mode": "simple",
+          "weight": 10,
+          "sets": 4,
+          "reps": 15,
+          "comment": "오늘은 자세를 찾은 것 같음. 어렵지 않음."
+        },
+        {
+          "name": "어시스트 풀업",
+          "mode": "simple",
+          "weight": 70,
+          "sets": 4,
+          "reps": 12,
+          "comment": "할만함. 컨디션: 에어컨 켜고 숙면. 약 8시간 수면. 컨디션 좋음."
+        },
+        {
+          "name": "오버헤드 프레스",
+          "mode": "simple",
+          "weight": 23,
+          "sets": 4,
+          "reps": 15,
+          "comment": "할만함."
+        }
+      ],
+      "createdAt": "2024-07-08T00:00:00.000Z"
+    },
+    {
+      "id": 1720569600000,
+      "date": "2024-07-10",
+      "type": "가슴어깨",
+      "exercises": [
+        {
+          "name": "체스트 프레스",
+          "mode": "simple",
+          "weight": 31.5,
+          "sets": 4,
+          "reps": 15,
+          "comment": "의자 높이 변경. 자극이 강하게 옴. 마지막 세트 힘듦."
+        },
+        {
+          "name": "플라이",
+          "mode": "simple",
+          "weight": 60,
+          "sets": 4,
+          "reps": 15,
+          "comment": "자극 강함. 어려움."
+        },
+        {
+          "name": "복근",
+          "mode": "simple",
+          "weight": 0,
+          "sets": 4,
+          "reps": 15,
+          "comment": "너무 힘듦."
+        },
+        {
+          "name": "케이블 푸시다운",
+          "mode": "simple",
+          "weight": 20,
+          "sets": 4,
+          "reps": 15,
+          "comment": "할만함."
+        },
+        {
+          "name": "어시스트 딥",
+          "mode": "simple",
+          "weight": 70,
+          "sets": 4,
+          "reps": 12,
+          "comment": "적당히 힘듦."
+        }
+      ],
+      "createdAt": "2024-07-10T00:00:00.000Z"
+    },
+    {
+      "id": 1720828800000,
+      "date": "2024-07-13",
+      "type": "하체",
+      "exercises": [
+        {
+          "name": "브이스쿼트",
+          "mode": "simple",
+          "weight": 25,
+          "sets": 4,
+          "reps": 15,
+          "comment": "할만함. 안 힘든 것 같음."
+        },
+        {
+          "name": "레그프레스",
+          "mode": "simple",
+          "weight": 35,
+          "sets": 4,
+          "reps": 15,
+          "comment": "4세트만 힘듦. 발 위치를 찾아서 허리 부담 감소."
+        },
+        {
+          "name": "레그익스텐션",
+          "mode": "simple",
+          "weight": 18.2,
+          "sets": 4,
+          "reps": 15,
+          "comment": "왜 이렇게 힘든지 모르겠음. 항상 가장 힘든 운동."
+        },
+        {
+          "name": "레그컬",
+          "mode": "simple",
+          "weight": 50,
+          "sets": 4,
+          "reps": 15,
+          "comment": "3세트부터 조금 힘듦. 할만한 수준."
+        },
+        {
+          "name": "어브덕션",
+          "mode": "simple",
+          "weight": 30,
+          "sets": 3,
+          "reps": 15,
+          "comment": ""
+        },
+        {
+          "name": "어덕션",
+          "mode": "simple",
+          "weight": 43,
+          "sets": 3,
+          "reps": 15,
+          "comment": ""
+        }
+      ],
+      "createdAt": "2024-07-13T00:00:00.000Z"
+    },
+    {
+      "id": 1721001600000,
+      "date": "2024-07-15",
+      "type": "등",
+      "exercises": [
+        {
+          "name": "랫풀다운",
+          "mode": "simple",
+          "weight": 35,
+          "sets": 4,
+          "reps": 12,
+          "comment": "3세트부터 갯수 채우기 힘듦."
+        },
+        {
+          "name": "MTS rows",
+          "mode": "simple",
+          "weight": 30,
+          "sets": 4,
+          "reps": 12,
+          "comment": "할만하지만 졸림."
+        },
+        {
+          "name": "어시스트 풀업",
+          "mode": "simple",
+          "weight": 70,
+          "sets": 4,
+          "reps": 12,
+          "comment": "할만하지만 졸림."
+        },
+        {
+          "name": "오버헤드 프레스",
+          "mode": "simple",
+          "weight": 23,
+          "sets": 4,
+          "reps": 15,
+          "comment": "아이소 생략. 피곤해서 운동 단축."
+        }
+      ],
+      "createdAt": "2024-07-15T00:00:00.000Z"
+    },
+    {
+      "id": 1721174400000,
+      "date": "2024-07-17",
+      "type": "가슴어깨",
+      "exercises": [
+        {
+          "name": "체스트 프레스",
+          "mode": "simple",
+          "weight": 31.5,
+          "sets": 4,
+          "reps": 15,
+          "comment": ""
+        },
+        {
+          "name": "플라이",
+          "mode": "simple",
+          "weight": 60,
+          "sets": 4,
+          "reps": 15,
+          "comment": ""
+        },
+        {
+          "name": "복근",
+          "mode": "simple",
+          "weight": 0,
+          "sets": 4,
+          "reps": 15,
+          "comment": ""
+        },
+        {
+          "name": "케이블 푸시다운",
+          "mode": "simple",
+          "weight": 20,
+          "sets": 4,
+          "reps": 15,
+          "comment": ""
+        },
+        {
+          "name": "어시스트 딥",
+          "mode": "simple",
+          "weight": 70,
+          "sets": 4,
+          "reps": 12,
+          "comment": "루틴 전부 완료. 자극은 특별히 못 느낌."
+        }
+      ],
+      "createdAt": "2024-07-17T00:00:00.000Z"
+    },
+    {
+      "id": 1721433600000,
+      "date": "2024-07-20",
+      "type": "하체",
+      "exercises": [
+        {
+          "name": "브이스쿼트",
+          "mode": "detailed",
+          "weight": 40,
+          "sets": 8,
+          "reps": 15,
+          "setsDetail": [
+            {"set": 1, "weight": 25, "reps": 15},
+            {"set": 2, "weight": 25, "reps": 15},
+            {"set": 3, "weight": 30, "reps": 15},
+            {"set": 4, "weight": 35, "reps": 15},
+            {"set": 5, "weight": 40, "reps": 15},
+            {"set": 6, "weight": 40, "reps": 15},
+            {"set": 7, "weight": 40, "reps": 15},
+            {"set": 8, "weight": 40, "reps": 15}
+          ],
+          "comment": "처음엔 안 힘듦. 조금 더 내려가니 자극이 엄청 좋아짐. 허리 말리지 않을 정도까지."
+        },
+        {
+          "name": "레그프레스",
+          "mode": "detailed",
+          "weight": 40,
+          "sets": 4,
+          "reps": 15,
+          "setsDetail": [
+            {"set": 1, "weight": 35, "reps": 15},
+            {"set": 2, "weight": 40, "reps": 15},
+            {"set": 3, "weight": 40, "reps": 15},
+            {"set": 4, "weight": 40, "reps": 15}
+          ],
+          "comment": "마지막 세트 매우 힘듦."
+        },
+        {
+          "name": "레그컬",
+          "mode": "detailed",
+          "weight": 70,
+          "sets": 4,
+          "reps": 12,
+          "setsDetail": [
+            {"set": 1, "weight": 50, "reps": 15},
+            {"set": 2, "weight": 70, "reps": 12},
+            {"set": 3, "weight": 70, "reps": 12},
+            {"set": 4, "weight": 70, "reps": 12}
+          ],
+          "comment": "진짜 너무 힘듦. 하체 완전 폭파."
+        },
+        {
+          "name": "어브덕션",
+          "mode": "simple",
+          "weight": 30,
+          "sets": 3,
+          "reps": 15,
+          "comment": ""
+        },
+        {
+          "name": "어덕션",
+          "mode": "simple",
+          "weight": 43,
+          "sets": 3,
+          "reps": 15,
+          "comment": ""
+        }
+      ],
+      "createdAt": "2024-07-20T00:00:00.000Z"
+    }
+  ],
+  "inbody": [
+    {
+      "id": 1721433600001,
+      "date": "2024-07-20",
+      "weight": 62.2,
+      "muscleMass": 28.2,
+      "bodyFat": 19.5,
+      "createdAt": "2024-07-20T00:00:00.000Z"
+    }
+  ],
+  "settings": {
+    "routineOrder": ["하체", "등", "가슴어깨"],
+    "exercises": {
+      "하체": ["브이스쿼트", "레그프레스", "레그익스텐션", "레그컬", "어브덕션", "어덕션"],
+      "등": ["랫풀다운", "MTS rows", "아이소 랫풀다운", "어시스트 풀업", "오버헤드 프레스"],
+      "가슴어깨": ["체스트 프레스", "플라이", "복근", "케이블 푸시다운", "어시스트 딥"]
+    }
+  }
+}

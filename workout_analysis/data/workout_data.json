@@ -1,0 +1,150 @@
+{
+  "inbody_records": [
+    {
+      "date": "2026-06-02",
+      "weight": 62.8,
+      "skeletal_muscle": 27.4,
+      "body_fat_percentage": 21.9
+    },
+    {
+      "date": "2026-06-30",
+      "weight": 61.8,
+      "skeletal_muscle": 27.9,
+      "body_fat_percentage": 19.5
+    },
+    {
+      "date": "2026-06-02",
+      "weight": 62.8,
+      "skeletal_muscle": 27.4,
+      "body_fat_percentage": 21.9
+    },
+    {
+      "date": "2026-06-30",
+      "weight": 61.8,
+      "skeletal_muscle": 27.9,
+      "body_fat_percentage": 19.5
+    }
+  ],
+  "workout_records": [
+    {
+      "date": "2026-07-03",
+      "type": "하체",
+      "exercises": {
+        "브이스쿼트": {
+          "weight": 40.0
+        },
+        "레그프레스": {
+          "weight": 40.0
+        },
+        "레그컬": {
+          "weight": 70.0
+        }
+      }
+    },
+    {
+      "date": "2026-07-03",
+      "type": "등",
+      "exercises": {
+        "랫풀다운": {
+          "weight": 35.0
+        },
+        "MTS Row": {},
+        "오버헤드 프레스": {
+          "weight": 23.0
+        }
+      }
+    },
+    {
+      "date": "2026-07-03",
+      "type": "가슴",
+      "exercises": {
+        "체스트 프레스": {
+          "weight": 31.5
+        },
+        "푸시다운": {}
+      }
+    },
+    {
+      "date": "2026-07-03",
+      "type": "하체",
+      "exercises": {
+        "브이스쿼트": {
+          "weight": 40.0
+        },
+        "레그프레스": {
+          "weight": 40.0
+        },
+        "레그컬": {
+          "weight": 70.0
+        }
+      }
+    },
+    {
+      "date": "2026-07-03",
+      "type": "등",
+      "exercises": {
+        "랫풀다운": {
+          "weight": 35.0
+        },
+        "MTS Row": {},
+        "오버헤드 프레스": {
+          "weight": 23.0
+        }
+      }
+    },
+    {
+      "date": "2026-07-03",
+      "type": "가슴",
+      "exercises": {
+        "체스트 프레스": {
+          "weight": 31.5
+        },
+        "푸시다운": {}
+      }
+    }
+  ],
+  "equipment_progression": {
+    "브이스쿼트": [
+      {
+        "stage": 1,
+        "weight": 25,
+        "reps": 15,
+        "sets": 4,
+        "comment": "쉬움"
+      },
+      {
+        "stage": 2,
+        "weight": 25,
+        "reps": 15,
+        "sets": 4,
+        "comment": "깊이 수정"
+      },
+      {
+        "stage": 3,
+        "weight": 40,
+        "reps": 15,
+        "sets": 4,
+        "comment": "새로운 기준"
+      }
+    ],
+    "레그컬": [
+      {
+        "stage": 1,
+        "weight": 50,
+        "note": "시작"
+      },
+      {
+        "stage": 2,
+        "weight": 70,
+        "note": "증량"
+      }
+    ],
+    "체스트 프레스": [
+      {
+        "stage": 1,
+        "weight": 31.5,
+        "note": "고정 - 의자 높이 수정 후 자극 증가"
+      }
+    ]
+  }
+}

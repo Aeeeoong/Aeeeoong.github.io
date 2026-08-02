@@ -633,6 +633,46 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   max-width: 120px;
 }
 
+/* Pull-to-Refresh */
+.pull-to-refresh-indicator {
+  position: fixed;
+  top: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 300px;
+  text-align: center;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.ptr-spinner {
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 0.5rem;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.ptr-spinner.spinning {
+  animation: ptr-spin 1s linear infinite;
+}
+
+@keyframes ptr-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.ptr-text {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 /* 설정 페이지 */
 .routines-list {
   display: flex;

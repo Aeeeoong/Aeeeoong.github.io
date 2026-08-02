@@ -18,7 +18,7 @@ const chartOptions = {
 };
 
 // 인바디 차트 그리기
-function renderInbodyChart(mode = 'all') {
+function renderInbodyChart(mode = 'weight') {
   const records = storage.getInbodyRecords().reverse(); // 오래된 것부터
   
   if (records.length === 0) {
@@ -57,60 +57,7 @@ function renderInbodyChart(mode = 'all') {
   let datasets = [];
   let scales = {};
 
-  if (mode === 'all') {
-    // 전체보기 모드
-    datasets = [
-      {
-        label: '체중 (kg)',
-        data: records.map(r => r.weight),
-        borderColor: '#2563eb',
-        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-        tension: 0.3,
-        fill: true
-      },
-      {
-        label: '골격근량 (kg)',
-        data: records.map(r => r.muscle),
-        borderColor: '#10b981',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        tension: 0.3,
-        fill: true
-      },
-      {
-        label: '체지방률 (%)',
-        data: records.map(r => r.bodyFat),
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-        tension: 0.3,
-        fill: true,
-        yAxisID: 'y1'
-      }
-    ];
-    
-    scales = {
-      y: {
-        type: 'linear',
-        display: true,
-        position: 'left',
-        title: {
-          display: true,
-          text: '체중 / 골격근량 (kg)'
-        }
-      },
-      y1: {
-        type: 'linear',
-        display: true,
-        position: 'right',
-        title: {
-          display: true,
-          text: '체지방률 (%)'
-        },
-        grid: {
-          drawOnChartArea: false
-        }
-      }
-    };
-  } else if (mode === 'weight') {
+  if (mode === 'weight') {
     // 체중만
     const weightData = records.map(r => r.weight);
     const range = calculateYRange(weightData);
@@ -331,8 +278,8 @@ function updateExerciseSelect(routine) {
 
 // 페이지 초기화
 document.addEventListener('DOMContentLoaded', () => {
-  // 인바디 차트
-  renderInbodyChart('all');
+  // 인바디 차트 (기본: 체중)
+  renderInbodyChart('weight');
   
   // 인바디 탭 클릭 이벤트
   const tabButtons = document.querySelectorAll('.tab-btn');

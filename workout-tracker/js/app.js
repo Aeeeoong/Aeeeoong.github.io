@@ -555,7 +555,7 @@ const pages = {
           if (index < records.length - 1) {
             const prev = records[index + 1];
             const weightChange = record.weight - prev.weight;
-            const muscleChange = record.muscle - prev.muscle;
+            const muscleChange = record.muscleMass - prev.muscleMass;
             change = `
               <small style="color: var(--text-secondary)">
                 체중 ${weightChange >= 0 ? '+' : ''}${utils.formatNumber(weightChange)}kg,
@@ -568,7 +568,7 @@ const pages = {
               <div class="history-date">${utils.displayDate(record.date)}</div>
               <div>
                 체중: ${utils.formatNumber(record.weight)}kg | 
-                골격근: ${utils.formatNumber(record.muscle)}kg | 
+                골격근: ${utils.formatNumber(record.muscleMass)}kg | 
                 체지방: ${utils.formatNumber(record.bodyFat)}%
               </div>
               ${change}

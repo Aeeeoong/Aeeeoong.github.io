@@ -180,13 +180,27 @@ async function renderExerciseChart(exerciseName) {
     return `${d.getMonth() + 1}/${d.getDate()}`;
   });
 
+  // 무게 데이터 확인
+  const hasWeight = progress.some(p => p.weight && p.weight > 0);
+  
+  // 무게가 없으면 회수로 차트 그리기
+  const chartData = hasWeight 
+    ? progress.map(p => p.weight) 
+    : progress.map(p => p.reps);
+  
+  const chartLabel = hasWeight 
+    ? `${exerciseName} 무게 (kg)` 
+    : `${exerciseName} 회수`;
+  
+  const yAxisLabel = hasWeight ? '무게 (kg)' : '회수';
+
   exerciseChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: dates,
       datasets: [{
-        label: `${exerciseName} 무게 (kg)`,
-        data: progress.map(p => p.weight),
+        label: chartLabel,
+        data: chartData,
         borderColor: '#8b5cf6',
         backgroundColor: 'rgba(139, 92, 246, 0.1)',
         tension: 0.3,
@@ -202,7 +216,7 @@ async function renderExerciseChart(exerciseName) {
           beginAtZero: true,
           title: {
             display: true,
-            text: '무게 (kg)'
+            text: yAxisLabel
           }
         }
       },

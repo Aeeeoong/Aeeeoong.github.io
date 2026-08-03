@@ -329,10 +329,11 @@ class WorkoutStorage {
             reps = exercise.reps;
           }
           
-          if (weight) {
+          // 무게, 세트, 회수 중 하나라도 있으면 추가
+          if (weight || sets || reps) {
             progress.push({
               date: workout.date,
-              weight: parseFloat(weight),
+              weight: weight ? parseFloat(weight) : null,
               sets: parseInt(sets) || 0,
               reps: parseInt(reps) || 0,
               comment: exercise.comment || '',

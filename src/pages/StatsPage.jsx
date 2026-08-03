@@ -12,6 +12,7 @@ import {
   Filler,
 } from 'chart.js'
 import { Line, Doughnut } from 'react-chartjs-2'
+import { Card, Empty, Form, Segmented, Select } from 'antd'
 import { PageHeader } from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -175,82 +176,70 @@ export default function StatsPage() {
     <>
       <PageHeader title="통계" />
       <main className="container">
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">인바디 추이</h2>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {[
-                ['weight', '체중'],
-                ['muscle', '골격근'],
-                ['bodyfat', '체지방'],
-              ].map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={`tab-btn${tab === key ? ' active' : ''}`}
-                  onClick={() => setTab(key)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+        <Card
+          title="인바디 추이"
+          extra={
+            <Segmented
+              value={tab}
+              onChange={setTab}
+              options={[
+                { label: '체중', value: 'weight' },
+                { label: '골격근', value: 'muscle' },
+                { label: '체지방', value: 'bodyfat' },
+              ]}
+            />
+          }
+          style={{ marginBottom: 16 }}
+        >
           <div className="chart-container">
-            {inbodyChart ? <Line data={inbodyChart.data} options={inbodyChart.options} /> : (
-              <div className="empty-state">인바디 데이터가 없습니다</div>
+            {inbodyChart ? (
+              <Line data={inbodyChart.data} options={inbodyChart.options} />
+            ) : (
+              <Empty description="인바디 데이터가 없습니다" />
             )}
           </div>
-        </div>
+        </Card>
 
-        <div className="card">
-          <h2 className="card-title">운동별 증량 추이</h2>
-          <div className="form-group">
-            <label className="form-label">루틴</label>
-            <select
-              className="form-select"
-              value={routine}
-              onChange={(e) => {
-                const next = e.target.value
-                setRoutine(next)
-                setExercise(settings?.exercises[next]?.[0] || '')
-              }}
-            >
-              {(settings?.routineOrder || []).map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">운동</label>
-            <select className="form-select" value={exercise} onChange={(e) => setExercise(e.target.value)}>
-              {exerciseOptions.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </div>
+        <Card title="운동별 증량 추이" style={{ marginBottom: 16 }}>
+          <Form layout="vertical">
+            <Form.Item label="루틴">
+              <Select
+                size="large"
+                value={routine || undefined}
+                options={(settings?.routineOrder || []).map((name) => ({ value: name, label: name }))}
+                onChange={(next) => {
+                  setRoutine(next)
+                  setExercise(settings?.exercises[next]?.[0] || '')
+                }}
+              />
+            </Form.Item>
+            <Form.Item label="운동">
+              <Select
+                size="large"
+                value={exercise || undefined}
+                options={exerciseOptions.map((name) => ({ value: name, label: name }))}
+                onChange={setExercise}
+              />
+            </Form.Item>
+          </Form>
           <div className="chart-container">
             {exerciseChart ? (
               <Line data={exerciseChart.data} options={exerciseChart.options} />
             ) : (
-              <div className="empty-state">선택한 운동의 기록이 없습니다</div>
+              <Empty description="선택한 운동의 기록이 없습니다" />
             )}
           </div>
-        </div>
+        </Card>
 
-        <div className="card">
-          <h2 className="card-title">운동 분포</h2>
+        <Card title="운동 분포">
           <div className="chart-container">
             {distribution ? (
               <Doughnut data={distribution.data} options={distribution.options} />
             ) : (
-              <div className="empty-state">운동 기록이 없습니다</div>
+              <Empty description="운동 기록이 없습니다" />
             )}
           </div>
-        </div>
+        </Card>
       </main>
     </>
   )

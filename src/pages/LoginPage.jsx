@@ -1,36 +1,20 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { Alert, Button, Card, Form, Input, Space, Tag, Typography } from 'antd'
 import { useAuth } from '../context/AuthContext'
+
+const { Title, Paragraph, Text } = Typography
 
 export default function LoginPage() {
   const { isLoggedIn, login, knownUsers, bootstrapping } = useAuth()
-  const [username, setUsername] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [form] = Form.useForm()
 
   if (isLoggedIn && !bootstrapping) return <Navigate to="/" replace />
 
-  async function handleSubmit(e) {
-    e.preventDefault()
+  async function handleFinish({ username }) {
     const name = username.trim()
-
-    if (!name) {
-      setError('사용자 이름을 입력해주세요')
-      return
-    }
-    if (name.length < 2) {
-      setError('사용자 이름은 2글자 이상이어야 합니다')
-      return
-    }
-    if (name.length > 20) {
-      setError('사용자 이름은 20글자 이하여야 합니다')
-      return
-    }
-    if (!/^[가-힣a-zA-Z0-9]+$/.test(name)) {
-      setError('한글, 영문, 숫자만 사용 가능합니다')
-      return
-    }
-
     setError('')
     setSubmitting(true)
     try {
@@ -44,59 +28,62 @@ export default function LoginPage() {
 
   return (
     <div className="login-container">
-      <div className="login-card">
-        <h1 className="login-title">운동 트래커</h1>
-        <p className="login-subtitle">사용자 이름을 입력하세요</p>
+      <Card className="login-card" bordered={false}>
+        <Title level={2} style={{ textAlign: 'center', marginBottom: 4, color: '#a5b4fc' }}>
+          운동 트래커
+        </Title>
+        <Paragraph type="secondary" style={{ textAlign: 'center', marginBottom: 24 }}>
+          사용자 이름을 입력하세요
+        </Paragraph>
 
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            className="login-input"
-            placeholder="사용자 이름 (예: 보섭)"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-            autoFocus
-            required
-          />
-          <button type="submit" className="login-btn" disabled={submitting}>
-            {submitting ? '연결 중…' : '시작하기'}
-          </button>
-        </form>
+        <Form form={form} layout="vertical" onFinish={handleFinish} requiredMark={false}>
+          <Form.Item
+            name="username"
+            rules={[
+              { required: true, message: '사용자 이름을 입력해주세요' },
+              { min: 2, message: '2글자 이상이어야 합니다' },
+              { max: 20, message: '20글자 이하여야 합니다' },
+              { pattern: /^[가-힣a-zA-Z0-9]+$/, message: '한글, 영문, 숫자만 가능합니다' },
+            ]}
+          >
+            <Input size="large" placeholder="사용자 이름 (예: 보섭)" autoFocus autoComplete="username" />
+          </Form.Item>
+          <Button type="primary" htmlType="submit" size="large" block loading={submitting}>
+            시작하기
+          </Button>
+        </Form>
 
-        {error && <div className="error-message show">{error}</div>}
+        {error && (
+          <Alert style={{ marginTop: 16 }} type="error" showIcon message={error} />
+        )}
 
-        <div className="login-info">
-          데이터는 Firebase에 저장됩니다. 예전 로컬 데이터가 있으면 로그인 시 자동으로 이전합니다.
-        </div>
+        <Alert
+          style={{ marginTop: 24 }}
+          type="info"
+          showIcon
+          message="데이터는 Firebase에 저장됩니다. 예전 로컬 데이터가 있으면 로그인 시 자동 이전됩니다."
+        />
 
         {knownUsers.length > 0 && (
-          <div style={{ marginTop: '1.5rem' }}>
-            <div
-              style={{
-                fontSize: '0.9rem',
-                color: 'var(--text-secondary)',
-                marginBottom: '0.5rem',
-                textAlign: 'center',
-              }}
-            >
-              등록된 사용자
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center' }}>
-              {knownUsers.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  className="user-badge"
-                  onClick={() => setUsername(name)}
-                >
-                  {name}
-                </button>
-              ))}
+          <div style={{ marginTop: 24, textAlign: 'center' }}>
+            <Text type="secondary">등록된 사용자</Text>
+            <div style={{ marginTop: 8 }}>
+              <Space wrap size={[8, 8]} style={{ justifyContent: 'center' }}>
+                {knownUsers.map((name) => (
+                  <Tag
+                    key={name}
+                    color="purple"
+                    style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 14 }}
+                    onClick={() => form.setFieldsValue({ username: name })}
+                  >
+                    {name}
+                  </Tag>
+                ))}
+              </Space>
             </div>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

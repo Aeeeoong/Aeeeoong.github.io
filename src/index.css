@@ -1059,3 +1059,23 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .tab-btn {
   background: var(--bg-main);
 }
+
+.nav-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.nav-item.active .nav-icon {
+  color: inherit;
+}
+.login-container .ant-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+.ant-picker {
+  width: 100%;
+}
+.container .ant-card {
+  margin-bottom: 0;
+}

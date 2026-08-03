@@ -1,12 +1,27 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  App,
+  Button,
+  Card,
+  Empty,
+  Popconfirm,
+  Select,
+  Space,
+  Spin,
+  Tag,
+  Typography,
+} from 'antd'
 import { PageHeader } from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
 import { deleteWorkout, getSettings, getWorkouts } from '../services/storage'
 import { displayDate, getRelativeTime } from '../lib/utils'
 
+const { Text } = Typography
+
 export default function HistoryPage() {
   const { user } = useAuth()
+  const { message, modal } = App.useApp()
   const [filter, setFilter] = useState('')
   const [routines, setRoutines] = useState([])
   const [workouts, setWorkouts] = useState([])
@@ -18,7 +33,7 @@ export default function HistoryPage() {
       const list = await getWorkouts(user, type ? { type } : {})
       setWorkouts(list)
     } catch (err) {
-      alert(`로드 실패: ${err.message}`)
+      modal.error({ title: '로드 실패', content: err.message })
     } finally {
       setLoading(false)
     }
@@ -33,12 +48,12 @@ export default function HistoryPage() {
   }, [user, filter])
 
   async function handleDelete(id) {
-    if (!confirm('이 운동 기록을 삭제하시겠습니까?')) return
     try {
       await deleteWorkout(user, id)
+      message.success('삭제되었습니다.')
       await load(filter)
     } catch (err) {
-      alert(`삭제 실패: ${err.message}`)
+      modal.error({ title: '삭제 실패', content: err.message })
     }
   }
 
@@ -46,104 +61,102 @@ export default function HistoryPage() {
     <>
       <PageHeader title="운동 내역" />
       <main className="container">
-        <div className="card">
-          <label className="form-label">루틴 필터</label>
-          <select className="form-select" value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="">전체</option>
-            {routines.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Card style={{ marginBottom: 16 }}>
+          <Select
+            style={{ width: '100%' }}
+            size="large"
+            value={filter}
+            onChange={setFilter}
+            options={[
+              { value: '', label: '전체 루틴' },
+              ...routines.map((name) => ({ value: name, label: name })),
+            ]}
+          />
+        </Card>
 
         {loading ? (
           <div className="loading">
-            <div className="spinner" />
+            <Spin size="large" />
           </div>
         ) : workouts.length === 0 ? (
-          <div className="card">
-            <div className="empty-state">
-              <div className="empty-state-text">운동 기록이 없습니다</div>
-              <Link to="/record" className="btn btn-primary">
-                첫 운동 기록하기
+          <Card>
+            <Empty description="운동 기록이 없습니다">
+              <Link to="/record">
+                <Button type="primary">첫 운동 기록하기</Button>
               </Link>
-            </div>
-          </div>
+            </Empty>
+          </Card>
         ) : (
-          workouts.map((workout) => (
-            <div key={workout.id} className="card">
-              <div className="card-header">
-                <div>
-                  <div style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
-                    {displayDate(workout.date)} ({getRelativeTime(workout.date)})
-                  </div>
-                  <span className="history-type">{workout.type}</span>
-                </div>
-                <button
-                  type="button"
-                  className="btn"
-                  style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'var(--danger)', color: 'white' }}
-                  onClick={() => handleDelete(workout.id)}
-                >
-                  삭제
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
-                {(workout.exercises || []).map((ex, idx) => {
-                  const isDetailed = ex.mode === 'detailed' && ex.setsDetail?.length
-                  return (
-                    <div key={`${ex.name}-${idx}`} style={{ background: 'var(--bg-main)', padding: '0.75rem', borderRadius: 8 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <div style={{ fontWeight: 600 }}>{ex.name}</div>
-                        {isDetailed && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>상세</span>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            {workouts.map((workout) => (
+              <Card
+                key={workout.id}
+                title={
+                  <Space wrap>
+                    <span>
+                      {displayDate(workout.date)}{' '}
+                      <Text type="secondary">({getRelativeTime(workout.date)})</Text>
+                    </span>
+                    <Tag color="purple">{workout.type}</Tag>
+                  </Space>
+                }
+                extra={
+                  <Popconfirm
+                    title="이 운동 기록을 삭제할까요?"
+                    okText="삭제"
+                    cancelText="취소"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={() => handleDelete(workout.id)}
+                  >
+                    <Button danger size="small">
+                      삭제
+                    </Button>
+                  </Popconfirm>
+                }
+              >
+                <Space direction="vertical" style={{ width: '100%' }} size={12}>
+                  {(workout.exercises || []).map((ex, idx) => {
+                    const isDetailed = ex.mode === 'detailed' && ex.setsDetail?.length
+                    return (
+                      <Card key={`${ex.name}-${idx}`} size="small" type="inner" title={ex.name} extra={isDetailed ? <Tag>상세</Tag> : null}>
+                        {isDetailed ? (
+                          <Space direction="vertical" style={{ width: '100%' }}>
+                            {ex.setsDetail.map((set) => (
+                              <FlexRow key={set.set} label={`${set.set}세트`} value={`${set.weight ? `${set.weight}kg` : '-'} × ${set.reps ? `${set.reps}회` : '-'}`} />
+                            ))}
+                          </Space>
+                        ) : (
+                          <Text type="secondary">
+                            {ex.weight ? `${ex.weight}kg ` : ''}
+                            {ex.sets ? `${ex.sets} 세트 ` : ''}
+                            {ex.reps ? `${ex.reps}회` : ''}
+                          </Text>
                         )}
-                      </div>
-                      {isDetailed ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {ex.setsDetail.map((set) => (
-                            <div
-                              key={set.set}
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                padding: '0.5rem',
-                                background: 'var(--bg-card)',
-                                borderRadius: 6,
-                              }}
-                            >
-                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                                {set.set}세트
-                              </span>
-                              <span style={{ fontSize: '0.875rem' }}>
-                                {set.weight ? `${set.weight}kg` : '-'} × {set.reps ? `${set.reps}회` : '-'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                          {ex.weight ? `${ex.weight}kg ` : ''}
-                          {ex.sets ? `${ex.sets} 세트 ` : ''}
-                          {ex.reps ? `${ex.reps}회` : ''}
-                        </div>
-                      )}
-                      {ex.comment && (
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem', fontStyle: 'italic' }}>
-                          {ex.comment}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          ))
+                        {ex.comment && (
+                          <div style={{ marginTop: 8 }}>
+                            <Text type="secondary" italic>
+                              {ex.comment}
+                            </Text>
+                          </div>
+                        )}
+                      </Card>
+                    )
+                  })}
+                </Space>
+              </Card>
+            ))}
+          </Space>
         )}
       </main>
     </>
+  )
+}
+
+function FlexRow({ label, value }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <Text type="secondary">{label}</Text>
+      <Text>{value}</Text>
+    </div>
   )
 }

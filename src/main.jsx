@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { ConfigProvider, theme } from 'antd'
+import { App as AntApp, ConfigProvider, theme } from 'antd'
 import koKR from 'antd/locale/ko_KR'
 import './index.css'
 import App from './App.jsx'
@@ -15,11 +15,22 @@ createRoot(document.getElementById('root')).render(
         algorithm: theme.darkAlgorithm,
         token: {
           colorPrimary: '#818cf8',
-          borderRadius: 8,
+          colorBgContainer: '#18181b',
+          colorBgElevated: '#18181b',
+          colorBorder: '#27272a',
+          borderRadius: 10,
+          fontFamily:
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        },
+        components: {
+          Card: { colorBgContainer: '#18181b' },
+          Statistic: { contentFontSize: 22 },
         },
       }}
     >
-      <App />
+      <AntApp>
+        <App />
+      </AntApp>
     </ConfigProvider>
   </StrictMode>,
 )

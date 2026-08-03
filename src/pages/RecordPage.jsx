@@ -1,18 +1,49 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import {
+  App,
+  Button,
+  Card,
+  Flex,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Segmented,
+  Select,
+  Space,
+  Typography,
+} from 'antd'
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
 import DateField from '../components/DateField'
 import { useAuth } from '../context/AuthContext'
 import { addWorkout, getSettings, getWorkouts } from '../services/storage'
 import { getTodayString } from '../lib/utils'
 
-function emptySimple() {
-  return { mode: 'simple', weight: '', sets: '', reps: '', comment: '', setsCount: 3, setsDetail: [] }
+const { Text } = Typography
+
+function emptyExercise(name) {
+  return {
+    name,
+    mode: 'simple',
+    weight: null,
+    sets: null,
+    reps: null,
+    comment: '',
+    setsCount: 3,
+    setsDetail: [
+      { weight: null, reps: null },
+      { weight: null, reps: null },
+      { weight: null, reps: null },
+    ],
+  }
 }
 
 export default function RecordPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { message, modal } = App.useApp()
   const [settings, setSettings] = useState(null)
   const [date, setDate] = useState(getTodayString())
   const [type, setType] = useState('')
@@ -23,23 +54,20 @@ export default function RecordPage() {
   useEffect(() => {
     getSettings(user).then((s) => {
       setSettings(s)
-      const first = s.routineOrder[0]
-      setType(first)
+      setType(s.routineOrder[0])
     })
   }, [user])
 
   useEffect(() => {
     if (!settings || !type) return
-
     async function setup() {
       const names = settings.exercises[type] || []
-      setExercises(names.map((name) => ({ name, ...emptySimple() })))
-
+      setExercises(names.map((name) => emptyExercise(name)))
       const recent = await getWorkouts(user)
       const recentWorkout = recent.find((w) => w.type === type)
       const map = {}
       names.forEach((name) => {
-        map[name] = { weight: '0', sets: '0', reps: '0' }
+        map[name] = { weight: null, sets: null, reps: null }
         const recentExercise = recentWorkout?.exercises?.find((e) => e.name === name)
         if (!recentExercise) return
         if (recentExercise.mode === 'detailed' && recentExercise.setsDetail?.length) {
@@ -47,49 +75,30 @@ export default function RecordPage() {
             (set.weight || 0) > (max.weight || 0) ? set : max,
           )
           map[name] = {
-            weight: String(maxSet.weight || '0'),
-            sets: String(recentExercise.setsDetail.length || '0'),
-            reps: String(maxSet.reps || '0'),
+            weight: maxSet.weight ?? null,
+            sets: recentExercise.setsDetail.length,
+            reps: maxSet.reps ?? null,
           }
         } else {
           map[name] = {
-            weight: String(recentExercise.weight || '0'),
-            sets: String(recentExercise.sets || '0'),
-            reps: String(recentExercise.reps || '0'),
+            weight: recentExercise.weight ?? null,
+            sets: recentExercise.sets ?? null,
+            reps: recentExercise.reps ?? null,
           }
         }
       })
       setPlaceholders(map)
     }
-
     setup()
   }, [settings, type, user])
 
-  const routineOptions = useMemo(() => settings?.routineOrder || [], [settings])
+  const routineOptions = useMemo(
+    () => (settings?.routineOrder || []).map((name) => ({ value: name, label: name })),
+    [settings],
+  )
 
   function updateExercise(index, patch) {
     setExercises((prev) => prev.map((ex, i) => (i === index ? { ...ex, ...patch } : ex)))
-  }
-
-  function switchMode(index, mode) {
-    setExercises((prev) =>
-      prev.map((ex, i) => {
-        if (i !== index) return ex
-        if (mode === 'detailed' && (!ex.setsDetail || ex.setsDetail.length === 0)) {
-          const count = ex.setsCount || 3
-          return {
-            ...ex,
-            mode,
-            setsDetail: Array.from({ length: count }, (_, n) => ({
-              set: n + 1,
-              weight: '',
-              reps: '',
-            })),
-          }
-        }
-        return { ...ex, mode }
-      }),
-    )
   }
 
   function changeSetsCount(index, count) {
@@ -98,17 +107,12 @@ export default function RecordPage() {
       prev.map((ex, i) => {
         if (i !== index) return ex
         const next = Array.from({ length: n }, (_, si) => ({
-          set: si + 1,
-          weight: ex.setsDetail?.[si]?.weight ?? '',
-          reps: ex.setsDetail?.[si]?.reps ?? '',
+          weight: ex.setsDetail?.[si]?.weight ?? null,
+          reps: ex.setsDetail?.[si]?.reps ?? null,
         }))
         return { ...ex, setsCount: n, setsDetail: next }
       }),
     )
-  }
-
-  function removeExercise(index) {
-    setExercises((prev) => prev.filter((_, i) => i !== index))
   }
 
   function addExercise() {
@@ -116,42 +120,51 @@ export default function RecordPage() {
     const current = exercises.map((e) => e.name)
     const available = all.filter((n) => !current.includes(n))
     if (available.length === 0) {
-      alert('추가할 수 있는 운동이 없습니다.')
+      message.warning('추가할 수 있는 운동이 없습니다.')
       return
     }
-    const name = prompt(`추가할 운동을 입력하세요:\n\n${available.join(', ')}`)
-    if (!name) return
-    if (!all.includes(name)) {
-      alert('유효하지 않은 운동명입니다.')
-      return
-    }
-    setExercises((prev) => [...prev, { name, ...emptySimple() }])
+    let selected = available[0]
+    Modal.confirm({
+      title: '운동 추가',
+      content: (
+        <Select
+          style={{ width: '100%', marginTop: 12 }}
+          defaultValue={available[0]}
+          options={available.map((n) => ({ value: n, label: n }))}
+          onChange={(v) => {
+            selected = v
+          }}
+        />
+      ),
+      okText: '추가',
+      cancelText: '취소',
+      onOk: () => setExercises((prev) => [...prev, emptyExercise(selected)]),
+    })
   }
 
   async function handleSave() {
     const workoutExercises = exercises
       .map((ex) => {
         if (ex.mode === 'simple') {
-          if (ex.weight || ex.sets || ex.reps || ex.comment) {
+          if (ex.weight != null || ex.sets != null || ex.reps != null || ex.comment) {
             return {
               name: ex.name,
               mode: 'simple',
-              weight: ex.weight ? parseFloat(ex.weight) : null,
-              sets: ex.sets ? parseInt(ex.sets, 10) : null,
-              reps: ex.reps ? parseInt(ex.reps, 10) : null,
+              weight: ex.weight != null ? Number(ex.weight) : null,
+              sets: ex.sets != null ? Number(ex.sets) : null,
+              reps: ex.reps != null ? Number(ex.reps) : null,
               comment: ex.comment || '',
             }
           }
           return null
         }
-
         const setsDetail = (ex.setsDetail || [])
           .map((s, i) => ({
             set: i + 1,
-            weight: s.weight ? parseFloat(s.weight) : null,
-            reps: s.reps ? parseInt(s.reps, 10) : null,
+            weight: s.weight != null ? Number(s.weight) : null,
+            reps: s.reps != null ? Number(s.reps) : null,
           }))
-          .filter((s) => s.weight || s.reps)
+          .filter((s) => s.weight != null || s.reps != null)
 
         if (setsDetail.length === 0 && !ex.comment) return null
 
@@ -177,17 +190,17 @@ export default function RecordPage() {
       .filter(Boolean)
 
     if (workoutExercises.length === 0) {
-      alert('최소 1개 이상의 운동을 입력해주세요.')
+      message.warning('최소 1개 이상의 운동을 입력해주세요.')
       return
     }
 
     setSaving(true)
     try {
       await addWorkout(user, { date, type, exercises: workoutExercises })
-      alert('운동 기록이 Firebase에 저장되었습니다!')
+      message.success('운동 기록이 Firebase에 저장되었습니다!')
       navigate('/')
     } catch (err) {
-      alert(`저장 실패: ${err.message}`)
+      modal.error({ title: '저장 실패', content: err.message })
     } finally {
       setSaving(false)
     }
@@ -198,183 +211,158 @@ export default function RecordPage() {
       <PageHeader
         title="운동 기록"
         actions={
-          <Link to="/" className="btn" style={{ background: 'var(--bg-main)', color: 'var(--text-primary)', padding: '0.5rem 1rem' }}>
-            돌아가기
+          <Link to="/">
+            <Button>돌아가기</Button>
           </Link>
         }
       />
       <main className="container">
-        <div className="card">
-          <h2 className="card-title">오늘의 운동</h2>
+        <Card title="오늘의 운동">
+          <Form layout="vertical">
+            <Form.Item label="운동 날짜">
+              <DateField value={date} onChange={setDate} />
+            </Form.Item>
+            <Form.Item label="운동 루틴">
+              <Select
+                size="large"
+                value={type || undefined}
+                options={routineOptions}
+                onChange={setType}
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+          </Form>
 
-          <div className="form-group">
-            <label className="form-label">운동 날짜</label>
-            <DateField value={date} onChange={setDate} />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">운동 루틴</label>
-            <select className="form-select" value={type} onChange={(e) => setType(e.target.value)}>
-              {routineOptions.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="exercise-grid">
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
             {exercises.map((ex, index) => {
-              const ph = placeholders[ex.name] || { weight: '0', sets: '0', reps: '0' }
+              const ph = placeholders[ex.name] || {}
               return (
-                <div key={`${ex.name}-${index}`} className="exercise-item">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <div className="exercise-name">{ex.name}</div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <div className="mode-toggle">
-                        <button
-                          type="button"
-                          className={`mode-btn${ex.mode === 'simple' ? ' active' : ''}`}
-                          onClick={() => switchMode(index, 'simple')}
-                        >
-                          간편
-                        </button>
-                        <button
-                          type="button"
-                          className={`mode-btn${ex.mode === 'detailed' ? ' active' : ''}`}
-                          onClick={() => switchMode(index, 'detailed')}
-                        >
-                          상세
-                        </button>
-                      </div>
-                      <button type="button" className="btn-delete-exercise" onClick={() => removeExercise(index)}>
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-
+                <Card
+                  key={`${ex.name}-${index}`}
+                  size="small"
+                  title={ex.name}
+                  extra={
+                    <Space>
+                      <Segmented
+                        size="small"
+                        value={ex.mode}
+                        options={[
+                          { label: '간편', value: 'simple' },
+                          { label: '상세', value: 'detailed' },
+                        ]}
+                        onChange={(mode) => updateExercise(index, { mode })}
+                      />
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => setExercises((prev) => prev.filter((_, i) => i !== index))}
+                      />
+                    </Space>
+                  }
+                >
                   {ex.mode === 'simple' ? (
-                    <div className="exercise-inputs">
-                      <div className="input-group">
-                        <label>무게 (kg)</label>
-                        <input
-                          type="number"
-                          step="0.5"
-                          placeholder={ph.weight}
+                    <Flex gap={8} wrap="wrap">
+                      <Form.Item label="무게 (kg)" style={{ marginBottom: 8, flex: 1, minWidth: 100 }}>
+                        <InputNumber
+                          style={{ width: '100%' }}
+                          step={0.5}
+                          placeholder={ph.weight != null ? String(ph.weight) : '0'}
                           value={ex.weight}
-                          onChange={(e) => updateExercise(index, { weight: e.target.value })}
+                          onChange={(v) => updateExercise(index, { weight: v })}
                         />
-                      </div>
-                      <div className="input-group">
-                        <label>세트</label>
-                        <input
-                          type="number"
-                          placeholder={ph.sets}
+                      </Form.Item>
+                      <Form.Item label="세트" style={{ marginBottom: 8, flex: 1, minWidth: 80 }}>
+                        <InputNumber
+                          style={{ width: '100%' }}
+                          placeholder={ph.sets != null ? String(ph.sets) : '0'}
                           value={ex.sets}
-                          onChange={(e) => updateExercise(index, { sets: e.target.value })}
+                          onChange={(v) => updateExercise(index, { sets: v })}
                         />
-                      </div>
-                      <div className="input-group">
-                        <label>회</label>
-                        <input
-                          type="number"
-                          placeholder={ph.reps}
+                      </Form.Item>
+                      <Form.Item label="회" style={{ marginBottom: 8, flex: 1, minWidth: 80 }}>
+                        <InputNumber
+                          style={{ width: '100%' }}
+                          placeholder={ph.reps != null ? String(ph.reps) : '0'}
                           value={ex.reps}
-                          onChange={(e) => updateExercise(index, { reps: e.target.value })}
+                          onChange={(v) => updateExercise(index, { reps: v })}
                         />
-                      </div>
-                    </div>
+                      </Form.Item>
+                    </Flex>
                   ) : (
                     <>
-                      <div className="input-group">
-                        <label>세트 수</label>
-                        <input
-                          type="number"
-                          className="sets-count-input"
+                      <Form.Item label="세트 수" style={{ marginBottom: 12 }}>
+                        <InputNumber
                           min={1}
                           max={10}
-                          value={ex.setsCount || 3}
-                          onChange={(e) => changeSetsCount(index, parseInt(e.target.value, 10))}
+                          value={ex.setsCount}
+                          onChange={(v) => changeSetsCount(index, v)}
                         />
-                      </div>
-                      <div className="sets-detail-container">
+                      </Form.Item>
+                      <Space direction="vertical" style={{ width: '100%' }} size={8}>
                         {(ex.setsDetail || []).map((set, si) => (
-                          <div key={si} className="set-detail-item">
-                            <div className="set-number">{si + 1}세트</div>
-                            <div className="set-inputs">
-                              <div className="input-group">
-                                <label>무게 (kg)</label>
-                                <input
-                                  type="number"
-                                  step="0.5"
-                                  className="set-input"
-                                  value={set.weight}
-                                  onChange={(e) => {
-                                    const next = [...ex.setsDetail]
-                                    next[si] = { ...next[si], weight: e.target.value }
-                                    updateExercise(index, { setsDetail: next })
-                                  }}
-                                />
-                              </div>
-                              <div className="input-group">
-                                <label>회</label>
-                                <input
-                                  type="number"
-                                  className="set-input"
-                                  value={set.reps}
-                                  onChange={(e) => {
-                                    const next = [...ex.setsDetail]
-                                    next[si] = { ...next[si], reps: e.target.value }
-                                    updateExercise(index, { setsDetail: next })
-                                  }}
-                                />
-                              </div>
-                              {si < (ex.setsDetail?.length || 0) - 1 && (
-                                <button
-                                  type="button"
-                                  className="copy-btn"
-                                  onClick={() => {
-                                    const next = [...ex.setsDetail]
-                                    next[si + 1] = {
-                                      ...next[si + 1],
-                                      weight: next[si].weight,
-                                      reps: next[si].reps,
-                                    }
-                                    updateExercise(index, { setsDetail: next })
-                                  }}
-                                >
-                                  ↓
-                                </button>
-                              )}
-                            </div>
-                          </div>
+                          <Flex key={si} gap={8} align="end">
+                            <Text style={{ width: 48 }}>{si + 1}세트</Text>
+                            <InputNumber
+                              style={{ flex: 1 }}
+                              step={0.5}
+                              placeholder="무게"
+                              value={set.weight}
+                              onChange={(v) => {
+                                const next = [...ex.setsDetail]
+                                next[si] = { ...next[si], weight: v }
+                                updateExercise(index, { setsDetail: next })
+                              }}
+                            />
+                            <InputNumber
+                              style={{ flex: 1 }}
+                              placeholder="회"
+                              value={set.reps}
+                              onChange={(v) => {
+                                const next = [...ex.setsDetail]
+                                next[si] = { ...next[si], reps: v }
+                                updateExercise(index, { setsDetail: next })
+                              }}
+                            />
+                            {si < ex.setsDetail.length - 1 && (
+                              <Button
+                                onClick={() => {
+                                  const next = [...ex.setsDetail]
+                                  next[si + 1] = {
+                                    weight: next[si].weight,
+                                    reps: next[si].reps,
+                                  }
+                                  updateExercise(index, { setsDetail: next })
+                                }}
+                              >
+                                ↓
+                              </Button>
+                            )}
+                          </Flex>
                         ))}
-                      </div>
+                      </Space>
                     </>
                   )}
-
-                  <div className="input-group" style={{ marginTop: '0.75rem' }}>
-                    <label>코멘트</label>
-                    <input
-                      type="text"
+                  <Form.Item label="코멘트" style={{ marginTop: 12, marginBottom: 0 }}>
+                    <Input
                       placeholder="예: 자세 좋음, 드랍세트"
                       value={ex.comment}
                       onChange={(e) => updateExercise(index, { comment: e.target.value })}
                     />
-                  </div>
-                </div>
+                  </Form.Item>
+                </Card>
               )
             })}
 
-            <button type="button" className="btn-add-exercise" onClick={addExercise}>
-              + 운동 추가
-            </button>
-          </div>
+            <Button type="dashed" block icon={<PlusOutlined />} onClick={addExercise}>
+              운동 추가
+            </Button>
 
-          <button type="button" className="btn btn-success btn-full" onClick={handleSave} disabled={saving}>
-            {saving ? 'Firebase 저장 중…' : '운동 기록 저장하기'}
-          </button>
-        </div>
+            <Button type="primary" size="large" block loading={saving} onClick={handleSave}>
+              운동 기록 저장하기
+            </Button>
+          </Space>
+        </Card>
       </main>
     </>
   )

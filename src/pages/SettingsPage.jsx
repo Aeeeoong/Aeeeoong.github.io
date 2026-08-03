@@ -1,4 +1,27 @@
 import { useEffect, useState } from 'react'
+import {
+  App,
+  Button,
+  Card,
+  Input,
+  List,
+  Modal,
+  Popconfirm,
+  Space,
+  Spin,
+  Typography,
+  Upload,
+} from 'antd'
+import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  ExportOutlined,
+  ImportOutlined,
+  LogoutOutlined,
+  PlusOutlined,
+} from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -9,8 +32,11 @@ import {
   saveSettings,
 } from '../services/storage'
 
+const { Text, Paragraph } = Typography
+
 export default function SettingsPage() {
   const { user, logout } = useAuth()
+  const { message, modal } = App.useApp()
   const [settings, setSettings] = useState(null)
   const [routineModal, setRoutineModal] = useState(null)
   const [exerciseModal, setExerciseModal] = useState(null)
@@ -19,12 +45,11 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState(false)
 
   async function refresh() {
-    const s = await getSettings(user)
-    setSettings(s)
+    setSettings(await getSettings(user))
   }
 
   useEffect(() => {
-    refresh().catch((err) => alert(`설정 로드 실패: ${err.message}`))
+    refresh().catch((err) => modal.error({ title: '설정 로드 실패', content: err.message }))
   }, [user])
 
   async function persist(next) {
@@ -32,8 +57,9 @@ export default function SettingsPage() {
     try {
       await saveSettings(user, next)
       setSettings(next)
+      message.success('저장됨')
     } catch (err) {
-      alert(`저장 실패: ${err.message}`)
+      modal.error({ title: '저장 실패', content: err.message })
     } finally {
       setBusy(false)
     }
@@ -42,7 +68,7 @@ export default function SettingsPage() {
   async function handleSaveRoutine() {
     const name = routineName.trim()
     if (!name) {
-      alert('루틴 이름을 입력하세요.')
+      message.warning('루틴 이름을 입력하세요.')
       return
     }
     const next = structuredClone(settings)
@@ -55,7 +81,7 @@ export default function SettingsPage() {
       }
     } else {
       if (next.routineOrder.includes(name)) {
-        alert('이미 존재하는 루틴 이름입니다.')
+        message.warning('이미 존재하는 루틴 이름입니다.')
         return
       }
       next.routineOrder.push(name)
@@ -74,7 +100,7 @@ export default function SettingsPage() {
       list[exerciseModal.index] = name
     } else {
       if (list.includes(name)) {
-        alert('이미 존재하는 운동 이름입니다.')
+        message.warning('이미 존재하는 운동 이름입니다.')
         return
       }
       list.push(name)
@@ -94,23 +120,23 @@ export default function SettingsPage() {
       a.download = `workout-tracker-${new Date().toISOString().split('T')[0]}.json`
       a.click()
       URL.revokeObjectURL(url)
-      alert('데이터를 내보냈습니다.')
+      message.success('데이터를 내보냈습니다.')
     } catch (err) {
-      alert(`내보내기 실패: ${err.message}`)
+      modal.error({ title: '내보내기 실패', content: err.message })
     }
   }
 
   async function handleImportFile(file) {
-    if (!file) return
     try {
       const text = await file.text()
       const json = JSON.parse(text)
       await importBundle(user, json)
       await refresh()
-      alert('데이터를 Firebase로 가져왔습니다.')
+      message.success('데이터를 Firebase로 가져왔습니다.')
     } catch (err) {
-      alert(`가져오기 실패: ${err.message}`)
+      modal.error({ title: '가져오기 실패', content: err.message })
     }
+    return false
   }
 
   if (!settings) {
@@ -119,7 +145,7 @@ export default function SettingsPage() {
         <PageHeader title="설정" />
         <main className="container">
           <div className="loading">
-            <div className="spinner" />
+            <Spin size="large" />
           </div>
         </main>
       </>
@@ -130,55 +156,55 @@ export default function SettingsPage() {
     <>
       <PageHeader title="설정" />
       <main className="container">
-        <div className="card">
-          <h2 className="card-title">계정</h2>
-          <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-            현재 사용자: <strong style={{ color: 'var(--text-primary)' }}>{user}</strong>
-          </p>
-          <p style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--success)' }}>
-            저장소: Firebase Firestore (로컬 폴백 없음)
-          </p>
-          <button
-            type="button"
-            className="btn"
-            style={{ background: 'var(--danger)', color: 'white' }}
-            onClick={() => {
-              if (confirm('로그아웃하시겠습니까?')) logout()
-            }}
-          >
-            로그아웃
-          </button>
-        </div>
+        <Card title="계정" style={{ marginBottom: 16 }}>
+          <Paragraph>
+            현재 사용자: <Text strong>{user}</Text>
+          </Paragraph>
+          <Paragraph style={{ color: '#34d399' }}>저장소: Firebase Firestore (로컬 폴백 없음)</Paragraph>
+          <Popconfirm title="로그아웃할까요?" okText="로그아웃" cancelText="취소" onConfirm={logout}>
+            <Button danger icon={<LogoutOutlined />}>
+              로그아웃
+            </Button>
+          </Popconfirm>
+        </Card>
 
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">루틴 관리</h2>
-            <button
-              type="button"
-              className="btn btn-primary"
+        <Card
+          title="루틴 관리"
+          extra={
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
               onClick={() => {
                 setRoutineName('')
                 setRoutineModal({ mode: 'add' })
               }}
             >
               루틴 추가
-            </button>
-          </div>
-
-          <div className="routines-list">
+            </Button>
+          }
+          style={{ marginBottom: 16 }}
+        >
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
             {settings.routineOrder.map((name, index) => {
               const exercises = settings.exercises[name] || []
               return (
-                <div key={name} className="routine-card">
-                  <div className="routine-header">
-                    <div>
-                      <h3 className="routine-name">{name}</h3>
-                      <p className="routine-count">{exercises.length}개 운동</p>
-                    </div>
-                    <div className="routine-actions">
-                      <button
-                        type="button"
-                        className="btn-icon"
+                <Card
+                  key={name}
+                  size="small"
+                  type="inner"
+                  title={
+                    <span>
+                      {name}{' '}
+                      <Text type="secondary" style={{ fontWeight: 400 }}>
+                        · {exercises.length}개
+                      </Text>
+                    </span>
+                  }
+                  extra={
+                    <Space>
+                      <Button
+                        size="small"
+                        icon={<ArrowUpOutlined />}
                         disabled={index === 0 || busy}
                         onClick={async () => {
                           const next = structuredClone(settings)
@@ -188,12 +214,10 @@ export default function SettingsPage() {
                           ]
                           await persist(next)
                         }}
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-icon"
+                      />
+                      <Button
+                        size="small"
+                        icon={<ArrowDownOutlined />}
                         disabled={index === settings.routineOrder.length - 1 || busy}
                         onClick={async () => {
                           const next = structuredClone(settings)
@@ -203,43 +227,44 @@ export default function SettingsPage() {
                           ]
                           await persist(next)
                         }}
-                      >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-icon"
+                      />
+                      <Button
+                        size="small"
+                        icon={<EditOutlined />}
                         onClick={() => {
                           setRoutineName(name)
                           setRoutineModal({ mode: 'edit', index })
                         }}
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-icon danger"
-                        onClick={async () => {
-                          if (!confirm(`"${name}" 루틴을 삭제하시겠습니까?`)) return
+                      />
+                      <Popconfirm
+                        title={`"${name}" 루틴을 삭제할까요?`}
+                        okText="삭제"
+                        cancelText="취소"
+                        okButtonProps={{ danger: true }}
+                        onConfirm={async () => {
                           const next = structuredClone(settings)
                           next.routineOrder.splice(index, 1)
                           delete next.exercises[name]
                           await persist(next)
                         }}
                       >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="exercises-list">
-                    {exercises.map((ex, exIndex) => (
-                      <div key={`${name}-${ex}`} className="exercise-item-settings">
-                        <span className="exercise-name">{ex}</span>
-                        <div className="exercise-actions">
-                          <button
-                            type="button"
-                            className="btn-icon-small"
+                        <Button size="small" danger icon={<DeleteOutlined />} />
+                      </Popconfirm>
+                    </Space>
+                  }
+                >
+                  <List
+                    size="small"
+                    dataSource={exercises}
+                    locale={{ emptyText: '운동이 없습니다' }}
+                    renderItem={(ex, exIndex) => (
+                      <List.Item
+                        actions={[
+                          <Button
+                            key="up"
+                            type="text"
+                            size="small"
+                            icon={<ArrowUpOutlined />}
                             disabled={exIndex === 0}
                             onClick={async () => {
                               const next = structuredClone(settings)
@@ -247,12 +272,12 @@ export default function SettingsPage() {
                               ;[list[exIndex - 1], list[exIndex]] = [list[exIndex], list[exIndex - 1]]
                               await persist(next)
                             }}
-                          >
-                            ↑
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-icon-small"
+                          />,
+                          <Button
+                            key="down"
+                            type="text"
+                            size="small"
+                            icon={<ArrowDownOutlined />}
                             disabled={exIndex === exercises.length - 1}
                             onClick={async () => {
                               const next = structuredClone(settings)
@@ -260,149 +285,122 @@ export default function SettingsPage() {
                               ;[list[exIndex + 1], list[exIndex]] = [list[exIndex], list[exIndex + 1]]
                               await persist(next)
                             }}
-                          >
-                            ↓
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-icon-small"
+                          />,
+                          <Button
+                            key="edit"
+                            type="text"
+                            size="small"
+                            icon={<EditOutlined />}
                             onClick={() => {
                               setExerciseName(ex)
                               setExerciseModal({ mode: 'edit', routine: name, index: exIndex })
                             }}
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-icon-small danger"
-                            onClick={async () => {
-                              if (!confirm(`"${ex}" 운동을 삭제하시겠습니까?`)) return
+                          />,
+                          <Popconfirm
+                            key="del"
+                            title={`"${ex}" 삭제할까요?`}
+                            okText="삭제"
+                            cancelText="취소"
+                            okButtonProps={{ danger: true }}
+                            onConfirm={async () => {
                               const next = structuredClone(settings)
                               next.exercises[name].splice(exIndex, 1)
                               await persist(next)
                             }}
                           >
-                            ×
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      className="btn-add-exercise"
-                      onClick={() => {
-                        setExerciseName('')
-                        setExerciseModal({ mode: 'add', routine: name })
-                      }}
-                    >
-                      + 운동 추가
-                    </button>
-                  </div>
-                </div>
+                            <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                          </Popconfirm>,
+                        ]}
+                      >
+                        {ex}
+                      </List.Item>
+                    )}
+                  />
+                  <Button
+                    type="dashed"
+                    block
+                    icon={<PlusOutlined />}
+                    style={{ marginTop: 8 }}
+                    onClick={() => {
+                      setExerciseName('')
+                      setExerciseModal({ mode: 'add', routine: name })
+                    }}
+                  >
+                    운동 추가
+                  </Button>
+                </Card>
               )
             })}
-          </div>
-        </div>
+          </Space>
+        </Card>
 
-        <div className="card">
-          <h2 className="card-title">데이터</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <button type="button" className="btn btn-primary" onClick={handleExport}>
+        <Card title="데이터" style={{ marginBottom: 16 }}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Button type="primary" icon={<ExportOutlined />} block onClick={handleExport}>
               Firebase 데이터 내보내기
-            </button>
-            <label className="btn" style={{ background: 'var(--bg-main)', textAlign: 'center', cursor: 'pointer' }}>
-              JSON 가져오기 → Firebase
-              <input
-                type="file"
-                accept="application/json"
-                hidden
-                onChange={(e) => handleImportFile(e.target.files?.[0])}
-              />
-            </label>
-            <button
-              type="button"
-              className="btn"
-              style={{ background: 'var(--warning)', color: '#111' }}
-              onClick={async () => {
-                if (!confirm('루틴 설정을 기본값으로 초기화할까요? (운동 기록은 유지)')) return
+            </Button>
+            <Upload accept="application/json" showUploadList={false} beforeUpload={handleImportFile}>
+              <Button icon={<ImportOutlined />} block>
+                JSON 가져오기 → Firebase
+              </Button>
+            </Upload>
+            <Popconfirm
+              title="루틴 설정을 기본값으로 초기화할까요? (운동 기록은 유지)"
+              okText="초기화"
+              cancelText="취소"
+              onConfirm={async () => {
                 const defaults = await resetSettings(user)
                 setSettings(defaults)
-                alert('설정이 초기화되었습니다.')
+                message.success('설정이 초기화되었습니다.')
               }}
             >
-              루틴 설정 초기화
-            </button>
-          </div>
-        </div>
+              <Button block>루틴 설정 초기화</Button>
+            </Popconfirm>
+          </Space>
+        </Card>
 
-        <div className="card">
-          <h2 className="card-title">앱 정보</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>버전 2.0.0 · React + Vite + Firebase</p>
-        </div>
+        <Card title="앱 정보">
+          <Text type="secondary">버전 2.1.0 · React + Vite + Firebase + antd</Text>
+        </Card>
       </main>
 
-      {routineModal && (
-        <div className="modal" onClick={(e) => e.target === e.currentTarget && setRoutineModal(null)}>
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>{routineModal.mode === 'edit' ? '루틴 편집' : '루틴 추가'}</h3>
-              <button type="button" className="modal-close" onClick={() => setRoutineModal(null)}>
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <label className="form-label">루틴 이름</label>
-              <input
-                className="form-input"
-                value={routineName}
-                onChange={(e) => setRoutineName(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn" onClick={() => setRoutineModal(null)}>
-                취소
-              </button>
-              <button type="button" className="btn btn-primary" onClick={handleSaveRoutine}>
-                저장
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        title={routineModal?.mode === 'edit' ? '루틴 편집' : '루틴 추가'}
+        open={!!routineModal}
+        onCancel={() => setRoutineModal(null)}
+        onOk={handleSaveRoutine}
+        okText="저장"
+        cancelText="취소"
+      >
+        <Input
+          placeholder="루틴 이름"
+          value={routineName}
+          onChange={(e) => setRoutineName(e.target.value)}
+          onPressEnter={handleSaveRoutine}
+          autoFocus
+        />
+      </Modal>
 
-      {exerciseModal && (
-        <div className="modal" onClick={(e) => e.target === e.currentTarget && setExerciseModal(null)}>
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>
-                {exerciseModal.routine} - {exerciseModal.mode === 'edit' ? '운동 편집' : '운동 추가'}
-              </h3>
-              <button type="button" className="modal-close" onClick={() => setExerciseModal(null)}>
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <label className="form-label">운동 이름</label>
-              <input
-                className="form-input"
-                value={exerciseName}
-                onChange={(e) => setExerciseName(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn" onClick={() => setExerciseModal(null)}>
-                취소
-              </button>
-              <button type="button" className="btn btn-primary" onClick={handleSaveExercise}>
-                저장
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        title={
+          exerciseModal
+            ? `${exerciseModal.routine} - ${exerciseModal.mode === 'edit' ? '운동 편집' : '운동 추가'}`
+            : ''
+        }
+        open={!!exerciseModal}
+        onCancel={() => setExerciseModal(null)}
+        onOk={handleSaveExercise}
+        okText="저장"
+        cancelText="취소"
+      >
+        <Input
+          placeholder="운동 이름"
+          value={exerciseName}
+          onChange={(e) => setExerciseName(e.target.value)}
+          onPressEnter={handleSaveExercise}
+          autoFocus
+        />
+      </Modal>
     </>
   )
 }

@@ -1067,6 +1067,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .nav-item.active .nav-icon {
   color: inherit;
 }
+
+@media (max-width: 768px) {
+  .bottom-nav .nav-label {
+    display: none;
+  }
+  .bottom-nav .nav-icon {
+    font-size: 1.35rem;
+  }
+  .bottom-nav .nav-item {
+    padding: 0.65rem 0.35rem;
+  }
+}
 .login-container .ant-card {
   width: 100%;
   max-width: 400px;

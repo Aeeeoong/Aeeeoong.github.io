@@ -2,7 +2,12 @@
 
 class WorkoutStorage {
   constructor() {
-    this.STORAGE_KEY = 'workout_tracker_data';
+    // 현재 로그인한 사용자 확인
+    const currentUser = localStorage.getItem('currentUser');
+    this.STORAGE_KEY = currentUser 
+      ? `workout_tracker_data_${currentUser}` 
+      : 'workout_tracker_data';
+    
     this.data = this.getDefaultData();
     this.loadData(); // 즉시 localStorage 로드
     this.isFirebaseReady = false;

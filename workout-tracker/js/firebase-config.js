@@ -22,6 +22,13 @@ async function initializeFirebase() {
       return false;
     }
 
+    // 현재 로그인한 사용자 확인
+    const currentUser = localStorage.getItem('currentUser');
+    if (!currentUser) {
+      console.log('ℹ️ 로그인된 사용자가 없습니다. Firebase 초기화를 건너뜁니다.');
+      return false;
+    }
+
     // Firebase 앱 초기화
     const app = firebase.initializeApp(firebaseConfig);
     
@@ -32,9 +39,11 @@ async function initializeFirebase() {
     
     // 익명 인증 (간단한 개인 사용)
     const userCredential = await firebase.auth().signInAnonymously();
-    userId = userCredential.user.uid;
+    
+    // userId는 사용자 이름으로 설정
+    userId = currentUser;
     window.userId = userId;
-    console.log('✅ Firebase 연결 완료! User ID:', userId);
+    console.log('✅ Firebase 연결 완료! 사용자:', userId);
     
     // localStorage 데이터가 있으면 마이그레이션
     migrateFromLocalStorage();

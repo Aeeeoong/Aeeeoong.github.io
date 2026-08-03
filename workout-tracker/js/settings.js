@@ -307,6 +307,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 루틴 렌더링
   renderRoutines();
   
+  // 현재 사용자 표시
+  const currentUser = localStorage.getItem('currentUser');
+  if (currentUser) {
+    document.getElementById('current-user').textContent = currentUser;
+  }
+  
+  // 로그아웃 버튼
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    if (confirm('로그아웃하시겠습니까?')) {
+      localStorage.removeItem('currentUser');
+      window.location.href = './login.html';
+    }
+  });
+  
   // 이벤트 리스너
   document.getElementById('add-routine-btn').addEventListener('click', openRoutineModal);
   document.getElementById('save-routine-btn').addEventListener('click', saveRoutine);

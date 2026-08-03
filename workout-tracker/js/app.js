@@ -625,19 +625,30 @@ const pages = {
   async saveWorkout() {
     const date = document.getElementById('workout-date').value;
     const type = document.getElementById('workout-type').value;
-    const exercises = storage.data.settings.exercises[type];
     
-    const workoutExercises = exercises.map((name, index) => {
-      const comment = document.getElementById(`comment-${index}`).value;
+    // DOM에 실제로 존재하는 운동만 처리
+    const exerciseItems = document.querySelectorAll('.exercise-item');
+    
+    const workoutExercises = Array.from(exerciseItems).map(item => {
+      const name = item.dataset.exerciseName;
+      const index = item.dataset.index;
+      
+      const commentEl = document.getElementById(`comment-${index}`);
+      const comment = commentEl ? commentEl.value : '';
       
       // 현재 모드 확인
-      const simpleModeVisible = document.getElementById(`simple-mode-${index}`).style.display !== 'none';
+      const simpleMode = document.getElementById(`simple-mode-${index}`);
+      const simpleModeVisible = simpleMode && simpleMode.style.display !== 'none';
       
       if (simpleModeVisible) {
         // 간편 모드
-        const weight = document.getElementById(`weight-${index}`).value;
-        const sets = document.getElementById(`sets-${index}`).value;
-        const reps = document.getElementById(`reps-${index}`).value;
+        const weightEl = document.getElementById(`weight-${index}`);
+        const setsEl = document.getElementById(`sets-${index}`);
+        const repsEl = document.getElementById(`reps-${index}`);
+        
+        const weight = weightEl ? weightEl.value : '';
+        const sets = setsEl ? setsEl.value : '';
+        const reps = repsEl ? repsEl.value : '';
         
         if (weight || sets || reps || comment) {
           return {
@@ -651,7 +662,8 @@ const pages = {
         }
       } else {
         // 상세 모드
-        const setsCount = parseInt(document.getElementById(`sets-count-${index}`).value) || 0;
+        const setsCountEl = document.getElementById(`sets-count-${index}`);
+        const setsCount = setsCountEl ? parseInt(setsCountEl.value) || 0 : 0;
         const setsDetail = [];
         
         for (let i = 0; i < setsCount; i++) {

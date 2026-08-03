@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { PageHeader } from '../components/Layout'
+import DateField from '../components/DateField'
 import { useAuth } from '../context/AuthContext'
 import { addInbody, getInbodyRecords, getLatestInbody } from '../services/storage'
 import { displayDate, formatNumber, getTodayString } from '../lib/utils'
@@ -56,7 +57,7 @@ export default function InbodyPage() {
 
           <div className="form-group">
             <label className="form-label">측정 날짜</label>
-            <input type="date" className="form-input" value={date} onChange={(e) => setDate(e.target.value)} />
+            <DateField value={date} onChange={setDate} />
           </div>
 
           <div className="form-group">

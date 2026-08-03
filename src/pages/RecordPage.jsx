@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PageHeader } from '../components/Layout'
+import DateField from '../components/DateField'
 import { useAuth } from '../context/AuthContext'
 import { addWorkout, getSettings, getWorkouts } from '../services/storage'
 import { getTodayString } from '../lib/utils'
@@ -208,7 +209,7 @@ export default function RecordPage() {
 
           <div className="form-group">
             <label className="form-label">운동 날짜</label>
-            <input type="date" className="form-input" value={date} onChange={(e) => setDate(e.target.value)} />
+            <DateField value={date} onChange={setDate} />
           </div>
 
           <div className="form-group">

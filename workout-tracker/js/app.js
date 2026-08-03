@@ -244,20 +244,55 @@ const pages = {
     });
   },
 
-  renderExerciseForm(type) {
+  async renderExerciseForm(type) {
     const exercises = storage.data.settings.exercises[type];
     const container = document.getElementById('exercise-form');
     
-    container.innerHTML = exercises.map((exercise, index) => `
-      <div class="exercise-item" data-index="${index}">
+    // 최근 운동 기록 가져오기
+    const recentWorkouts = await storage.getWorkouts();
+    const recentWorkout = recentWorkouts.find(w => w.type === type);
+    
+    container.innerHTML = exercises.map((exercise, index) => {
+      // 해당 운동의 최근 기록 찾기
+      let placeholder = { weight: '0', sets: '0', reps: '0' };
+      if (recentWorkout) {
+        const recentExercise = recentWorkout.exercises.find(e => e.name === exercise);
+        if (recentExercise) {
+          if (recentExercise.mode === 'detailed' && recentExercise.setsDetail) {
+            // 상세 모드: 최대 무게 사용
+            const maxSet = recentExercise.setsDetail.reduce((max, set) => 
+              (set.weight || 0) > (max.weight || 0) ? set : max
+            );
+            placeholder = {
+              weight: maxSet.weight || '0',
+              sets: recentExercise.setsDetail.length || '0',
+              reps: maxSet.reps || '0'
+            };
+          } else {
+            placeholder = {
+              weight: recentExercise.weight || '0',
+              sets: recentExercise.sets || '0',
+              reps: recentExercise.reps || '0'
+            };
+          }
+        }
+      }
+      
+      return `
+      <div class="exercise-item" data-index="${index}" data-exercise-name="${exercise}">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
           <div class="exercise-name">${exercise}</div>
-          <div class="mode-toggle">
-            <button type="button" class="mode-btn active" data-mode="simple" data-index="${index}">
-              간편
-            </button>
-            <button type="button" class="mode-btn" data-mode="detailed" data-index="${index}">
-              상세
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <div class="mode-toggle">
+              <button type="button" class="mode-btn active" data-mode="simple" data-index="${index}">
+                간편
+              </button>
+              <button type="button" class="mode-btn" data-mode="detailed" data-index="${index}">
+                상세
+              </button>
+            </div>
+            <button type="button" class="btn-delete-exercise" data-index="${index}" title="운동 제거">
+              ✕
             </button>
           </div>
         </div>
@@ -269,19 +304,19 @@ const pages = {
               <label>무게 (kg)</label>
               <input type="number" step="0.5" 
                      id="weight-${index}" 
-                     placeholder="0">
+                     placeholder="${placeholder.weight}">
             </div>
             <div class="input-group">
               <label>세트</label>
               <input type="number" 
                      id="sets-${index}" 
-                     placeholder="0">
+                     placeholder="${placeholder.sets}">
             </div>
             <div class="input-group">
               <label>회</label>
               <input type="number" 
                      id="reps-${index}" 
-                     placeholder="0">
+                     placeholder="${placeholder.reps}">
             </div>
           </div>
         </div>
@@ -312,6 +347,13 @@ const pages = {
       </div>
     `).join('');
     
+    // 운동 추가 버튼
+    container.innerHTML += `
+      <button type="button" class="btn-add-exercise" id="add-exercise-btn">
+        + 운동 추가
+      </button>
+    `;
+    
     // 모드 토글 이벤트 리스너
     document.querySelectorAll('.mode-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -319,6 +361,19 @@ const pages = {
         const mode = e.target.dataset.mode;
         this.switchMode(index, mode);
       });
+    });
+    
+    // 삭제 버튼 이벤트 리스너
+    document.querySelectorAll('.btn-delete-exercise').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const index = e.target.dataset.index;
+        this.deleteExercise(index);
+      });
+    });
+    
+    // 추가 버튼 이벤트 리스너
+    document.getElementById('add-exercise-btn')?.addEventListener('click', () => {
+      this.showAddExerciseModal(type);
     });
     
     // 세트 수 변경 이벤트 리스너
@@ -334,6 +389,123 @@ const pages = {
     exercises.forEach((_, index) => {
       this.renderSetsDetail(index, 3);
     });
+  },
+  
+  deleteExercise(index) {
+    const exerciseItem = document.querySelector(`.exercise-item[data-index="${index}"]`);
+    if (exerciseItem) {
+      exerciseItem.remove();
+    }
+  },
+  
+  showAddExerciseModal(type) {
+    // 간단한 prompt로 구현 (나중에 모달로 개선 가능)
+    const allExercises = storage.data.settings.exercises[type];
+    const currentExercises = Array.from(document.querySelectorAll('.exercise-item'))
+      .map(item => item.dataset.exerciseName);
+    const availableExercises = allExercises.filter(ex => !currentExercises.includes(ex));
+    
+    if (availableExercises.length === 0) {
+      alert('추가할 수 있는 운동이 없습니다.');
+      return;
+    }
+    
+    const exerciseName = prompt(
+      `추가할 운동을 입력하세요:\n\n${availableExercises.join(', ')}`
+    );
+    
+    if (exerciseName && allExercises.includes(exerciseName)) {
+      this.addExerciseToForm(exerciseName, type);
+    } else if (exerciseName) {
+      alert('유효하지 않은 운동명입니다.');
+    }
+  },
+  
+  async addExerciseToForm(exerciseName, type) {
+    // 최근 기록 가져오기
+    const recentWorkouts = await storage.getWorkouts();
+    const recentWorkout = recentWorkouts.find(w => w.type === type);
+    
+    let placeholder = { weight: '0', sets: '0', reps: '0' };
+    if (recentWorkout) {
+      const recentExercise = recentWorkout.exercises.find(e => e.name === exerciseName);
+      if (recentExercise) {
+        placeholder = {
+          weight: recentExercise.weight || '0',
+          sets: recentExercise.sets || '0',
+          reps: recentExercise.reps || '0'
+        };
+      }
+    }
+    
+    const newIndex = document.querySelectorAll('.exercise-item').length;
+    const addButton = document.getElementById('add-exercise-btn');
+    
+    const exerciseHTML = `
+      <div class="exercise-item" data-index="${newIndex}" data-exercise-name="${exerciseName}">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <div class="exercise-name">${exerciseName}</div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <div class="mode-toggle">
+              <button type="button" class="mode-btn active" data-mode="simple" data-index="${newIndex}">
+                간편
+              </button>
+              <button type="button" class="mode-btn" data-mode="detailed" data-index="${newIndex}">
+                상세
+              </button>
+            </div>
+            <button type="button" class="btn-delete-exercise" data-index="${newIndex}" title="운동 제거">
+              ✕
+            </button>
+          </div>
+        </div>
+        
+        <div id="simple-mode-${newIndex}" class="input-mode">
+          <div class="exercise-inputs">
+            <div class="input-group">
+              <label>무게 (kg)</label>
+              <input type="number" step="0.5" id="weight-${newIndex}" placeholder="${placeholder.weight}">
+            </div>
+            <div class="input-group">
+              <label>세트</label>
+              <input type="number" id="sets-${newIndex}" placeholder="${placeholder.sets}">
+            </div>
+            <div class="input-group">
+              <label>회</label>
+              <input type="number" id="reps-${newIndex}" placeholder="${placeholder.reps}">
+            </div>
+          </div>
+        </div>
+        
+        <div id="detailed-mode-${newIndex}" class="input-mode" style="display: none;">
+          <div class="input-group">
+            <label>세트 수</label>
+            <input type="number" id="sets-count-${newIndex}" placeholder="3" min="1" max="10" value="3" class="sets-count-input">
+          </div>
+          <div id="sets-detail-${newIndex}" class="sets-detail-container"></div>
+        </div>
+        
+        <div class="input-group">
+          <label>코멘트</label>
+          <input type="text" id="comment-${newIndex}" placeholder="예: 자세 좋음, 드랍세트, 마지막 세트 힘듦">
+        </div>
+      </div>
+    `;
+    
+    addButton.insertAdjacentHTML('beforebegin', exerciseHTML);
+    
+    // 이벤트 리스너 재등록
+    document.querySelectorAll(`.exercise-item[data-index="${newIndex}"] .mode-btn`).forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        this.switchMode(newIndex, e.target.dataset.mode);
+      });
+    });
+    
+    document.querySelector(`.btn-delete-exercise[data-index="${newIndex}"]`)?.addEventListener('click', () => {
+      this.deleteExercise(newIndex);
+    });
+    
+    this.renderSetsDetail(newIndex, 3);
   },
   
   switchMode(index, mode) {

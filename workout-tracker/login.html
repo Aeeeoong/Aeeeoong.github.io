@@ -47,12 +47,13 @@
       width: 100%;
       padding: 1rem;
       font-size: 1rem;
-      border: 2px solid var(--border-color);
+      border: 2px solid #374151;
       border-radius: 0.5rem;
-      background: var(--bg-secondary);
-      color: var(--text-primary);
+      background: #1f2937;
+      color: #ffffff !important;
       margin-bottom: 1.5rem;
       transition: all 0.3s;
+      -webkit-text-fill-color: #ffffff;
     }
     
     .login-input:focus {
@@ -104,6 +105,23 @@
     .error-message.show {
       display: block;
     }
+    
+    .user-badge {
+      padding: 0.5rem 1rem;
+      background: rgba(139, 92, 246, 0.2);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .user-badge:hover {
+      background: rgba(139, 92, 246, 0.3);
+      border-color: rgba(139, 92, 246, 0.5);
+      transform: translateY(-2px);
+    }
   </style>
 </head>
 <body>
@@ -133,8 +151,16 @@
       </div>
       
       <div class="login-info">
-        💡 사용자 이름만으로 로그인됩니다<br>
-        처음 사용하는 이름이면 새 계정이 생성됩니다
+        💡 사용자 이름만으로 로그인됩니다
+      </div>
+      
+      <div id="users-list" style="margin-top: 1.5rem;">
+        <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-align: center;">
+          등록된 사용자
+        </div>
+        <div id="users-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
+          <!-- 동적으로 생성 -->
+        </div>
       </div>
     </div>
   </div>

@@ -4,6 +4,7 @@ class WorkoutStorage {
   constructor() {
     this.STORAGE_KEY = 'workout_tracker_data';
     this.data = this.getDefaultData();
+    this.loadData(); // 즉시 localStorage 로드
     this.isFirebaseReady = false;
     this.waitForFirebase();
   }
@@ -23,7 +24,6 @@ class WorkoutStorage {
       console.log('✅ Firebase 연결 완료');
     } else {
       console.warn('⚠️ Firebase 연결 실패, localStorage 사용');
-      this.loadData(); // localStorage에서 로드
     }
   }
 

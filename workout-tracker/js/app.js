@@ -164,14 +164,14 @@ const pages = {
       document.getElementById('current-weight').textContent = 
         utils.formatNumber(latestInbody.weight);
       document.getElementById('current-muscle').textContent = 
-        utils.formatNumber(latestInbody.muscle);
+        utils.formatNumber(latestInbody.muscleMass);
       
       // 이전 인바디와 비교
       const inbodyRecords = await storage.getInbodyRecords();
       if (inbodyRecords.length > 1) {
         const previous = inbodyRecords[1];
         const weightChange = latestInbody.weight - previous.weight;
-        const muscleChange = latestInbody.muscle - previous.muscle;
+        const muscleChange = latestInbody.muscleMass - previous.muscleMass;
         
         document.getElementById('weight-change').textContent = 
           `${weightChange >= 0 ? '+' : ''}${utils.formatNumber(weightChange)}kg`;
@@ -182,21 +182,23 @@ const pages = {
 
     // 최근 운동 기록
     const historyList = document.getElementById('recent-history');
-    if (recentWorkouts.length === 0) {
-      historyList.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-text">아직 운동 기록이 없습니다</div>
-          <a href="record.html" class="btn btn-primary">첫 운동 기록하기</a>
-        </div>
-      `;
-    } else {
-      historyList.innerHTML = recentWorkouts.map(workout => `
-        <li class="history-item">
-          <div class="history-date">${utils.displayDate(workout.date)}</div>
-          <span class="history-type">${workout.type}</span>
-          <div>${workout.exercises.length}개 운동</div>
-        </li>
-      `).join('');
+    if (historyList) {
+      if (recentWorkouts.length === 0) {
+        historyList.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-text">아직 운동 기록이 없습니다</div>
+            <a href="record.html" class="btn btn-primary">첫 운동 기록하기</a>
+          </div>
+        `;
+      } else {
+        historyList.innerHTML = recentWorkouts.map(workout => `
+          <li class="history-item">
+            <div class="history-date">${utils.displayDate(workout.date)}</div>
+            <span class="history-type">${workout.type}</span>
+            <div>${workout.exercises.length}개 운동</div>
+          </li>
+        `).join('');
+      }
     }
     
     // 달력 렌더링

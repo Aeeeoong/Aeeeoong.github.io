@@ -155,17 +155,25 @@ async function renderInbodyChart(mode = 'weight') {
 async function renderExerciseChart(exerciseName) {
   const progress = await storage.getExerciseProgress(exerciseName);
   
+  // 기존 차트 파괴
+  if (exerciseChart) {
+    exerciseChart.destroy();
+    exerciseChart = null;
+  }
+  
+  const chartContainer = document.querySelector('#exercise-chart')?.parentElement;
+  if (!chartContainer) return;
+  
   if (progress.length === 0) {
-    document.getElementById('exercise-chart').parentElement.innerHTML = 
-      '<div class="empty-state">선택한 운동의 기록이 없습니다</div>';
+    chartContainer.innerHTML = '<div class="empty-state">선택한 운동의 기록이 없습니다</div>';
     return;
   }
 
+  // 캔버스 재생성
+  chartContainer.innerHTML = '<canvas id="exercise-chart"></canvas>';
   const ctx = document.getElementById('exercise-chart');
   
-  if (exerciseChart) {
-    exerciseChart.destroy();
-  }
+  if (!ctx) return;
 
   const dates = progress.map(p => {
     const d = new Date(p.date);

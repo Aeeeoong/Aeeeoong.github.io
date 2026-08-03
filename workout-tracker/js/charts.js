@@ -86,7 +86,7 @@ async function renderInbodyChart(mode = 'weight') {
     };
   } else if (mode === 'muscle') {
     // 골격근량만
-    const muscleData = records.map(r => r.muscle);
+    const muscleData = records.map(r => r.muscleMass);
     const range = calculateYRange(muscleData);
     
     datasets = [{

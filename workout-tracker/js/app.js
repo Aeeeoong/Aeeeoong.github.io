@@ -166,17 +166,24 @@ const pages = {
       document.getElementById('current-muscle').textContent = 
         utils.formatNumber(latestInbody.muscleMass);
       
-      // 이전 인바디와 비교
+      // 이전 인바디와 비교 (변화량 요소가 있으면)
       const inbodyRecords = await storage.getInbodyRecords();
       if (inbodyRecords.length > 1) {
         const previous = inbodyRecords[1];
         const weightChange = latestInbody.weight - previous.weight;
         const muscleChange = latestInbody.muscleMass - previous.muscleMass;
         
-        document.getElementById('weight-change').textContent = 
-          `${weightChange >= 0 ? '+' : ''}${utils.formatNumber(weightChange)}kg`;
-        document.getElementById('muscle-change').textContent = 
-          `${muscleChange >= 0 ? '+' : ''}${utils.formatNumber(muscleChange)}kg`;
+        const weightChangeEl = document.getElementById('weight-change');
+        const muscleChangeEl = document.getElementById('muscle-change');
+        
+        if (weightChangeEl) {
+          weightChangeEl.textContent = 
+            `${weightChange >= 0 ? '+' : ''}${utils.formatNumber(weightChange)}kg`;
+        }
+        if (muscleChangeEl) {
+          muscleChangeEl.textContent = 
+            `${muscleChange >= 0 ? '+' : ''}${utils.formatNumber(muscleChange)}kg`;
+        }
       }
     }
 

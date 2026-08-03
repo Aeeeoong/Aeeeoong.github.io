@@ -279,9 +279,9 @@ const pages = {
       }
       
       return `
-      <div class="exercise-item" data-index="${index}" data-exercise-name="${exercise}">
+      <div class="exercise-item" data-index="${index}" data-exercise-name="${exercise}" draggable="true">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-          <div class="exercise-name">${exercise}</div>
+          <div class="exercise-name" style="cursor: move;">⋮⋮ ${exercise}</div>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
             <div class="mode-toggle">
               <button type="button" class="mode-btn active" data-mode="simple" data-index="${index}">
@@ -345,7 +345,8 @@ const pages = {
                  placeholder="예: 자세 좋음, 드랍세트, 마지막 세트 힘듦">
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
     
     // 운동 추가 버튼
     container.innerHTML += `
@@ -389,6 +390,52 @@ const pages = {
     exercises.forEach((_, index) => {
       this.renderSetsDetail(index, 3);
     });
+    
+    // 드래그 앤 드롭 이벤트
+    this.initDragAndDrop();
+  },
+  
+  initDragAndDrop() {
+    const exerciseItems = document.querySelectorAll('.exercise-item');
+    let draggedItem = null;
+    
+    exerciseItems.forEach(item => {
+      item.addEventListener('dragstart', (e) => {
+        draggedItem = item;
+        item.style.opacity = '0.5';
+      });
+      
+      item.addEventListener('dragend', (e) => {
+        item.style.opacity = '1';
+      });
+      
+      item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const afterElement = this.getDragAfterElement(e.clientY);
+        const container = document.getElementById('exercise-form');
+        
+        if (afterElement == null) {
+          container.insertBefore(draggedItem, document.getElementById('add-exercise-btn'));
+        } else {
+          container.insertBefore(draggedItem, afterElement);
+        }
+      });
+    });
+  },
+  
+  getDragAfterElement(y) {
+    const draggableElements = [...document.querySelectorAll('.exercise-item:not(.dragging)')];
+    
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
   },
   
   deleteExercise(index) {

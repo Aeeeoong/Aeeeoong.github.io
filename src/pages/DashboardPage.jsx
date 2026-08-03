@@ -8,12 +8,14 @@ import {
   Card,
   Col,
   Empty,
+  Flex,
   List,
   Row,
   Spin,
   Statistic,
   Typography,
 } from 'antd'
+import { LeftOutlined, RightOutlined } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
 import { getLatestInbody, getWorkoutStats, getWorkouts } from '../services/storage'
@@ -118,6 +120,24 @@ export default function DashboardPage() {
             <Card title="운동 달력" style={{ marginBottom: 16 }}>
               <Calendar
                 fullscreen={false}
+                mode="month"
+                headerRender={({ value, onChange }) => (
+                  <Flex justify="space-between" align="center" style={{ padding: '4px 0 12px' }}>
+                    <Button
+                      type="text"
+                      icon={<LeftOutlined />}
+                      onClick={() => onChange(value.clone().subtract(1, 'month'))}
+                    />
+                    <Text strong>
+                      {value.year()}년 {value.month() + 1}월
+                    </Text>
+                    <Button
+                      type="text"
+                      icon={<RightOutlined />}
+                      onClick={() => onChange(value.clone().add(1, 'month'))}
+                    />
+                  </Flex>
+                )}
                 cellRender={(current, info) => {
                   if (info.type !== 'date') return info.originNode
                   return (

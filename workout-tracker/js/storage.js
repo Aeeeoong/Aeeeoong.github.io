@@ -377,15 +377,54 @@ class WorkoutStorage {
   }
 
   // 데이터 가져오기
-  importData(jsonString) {
+  async importData(jsonStringOrObject) {
     try {
-      const imported = JSON.parse(jsonString);
-      this.data = imported;
-      this.saveData();
+      let imported;
+      
+      // 문자열이면 파싱, 객체면 그대로 사용
+      if (typeof jsonStringOrObject === 'string') {
+        imported = JSON.parse(jsonStringOrObject);
+      } else {
+        imported = jsonStringOrObject;
+      }
+      
+      // Firebase에 데이터 추가
+      if (this.isFirebaseReady && window.db && window.userId) {
+        // 운동 기록 추가
+        if (imported.workouts && imported.workouts.length > 0) {
+          for (const workout of imported.workouts) {
+            await window.db.collection('users').doc(window.userId)
+              .collection('workouts').doc(String(workout.id)).set(workout);
+          }
+          console.log(`✅ ${imported.workouts.length}개 운동 기록 임포트 완료`);
+        }
+        
+        // 인바디 기록 추가
+        if (imported.inbody && imported.inbody.length > 0) {
+          for (const inbody of imported.inbody) {
+            await window.db.collection('users').doc(window.userId)
+              .collection('inbody').doc(String(inbody.id)).set(inbody);
+          }
+          console.log(`✅ ${imported.inbody.length}개 인바디 기록 임포트 완료`);
+        }
+        
+        // 설정 업데이트
+        if (imported.settings) {
+          await window.db.collection('users').doc(window.userId)
+            .collection('settings').doc('config').set(imported.settings);
+          this.data.settings = imported.settings;
+          console.log('✅ 설정 임포트 완료');
+        }
+      } else {
+        // localStorage에 저장
+        this.data = imported;
+        this.saveData();
+      }
+      
       return true;
     } catch (error) {
       console.error('데이터 가져오기 실패:', error);
-      return false;
+      throw error;
     }
   }
 

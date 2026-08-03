@@ -12,7 +12,9 @@ import {
   Tag,
   Typography,
 } from 'antd'
+import { EditOutlined } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
+import EditWorkoutDrawer from '../components/EditWorkoutDrawer'
 import { useAuth } from '../context/AuthContext'
 import { deleteWorkout, getSettings, getWorkouts } from '../services/storage'
 import { displayDate, getRelativeTime } from '../lib/utils'
@@ -24,8 +26,10 @@ export default function HistoryPage() {
   const { message, modal } = App.useApp()
   const [filter, setFilter] = useState('')
   const [routines, setRoutines] = useState([])
+  const [settings, setSettings] = useState(null)
   const [workouts, setWorkouts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(null)
 
   async function load(type = filter) {
     setLoading(true)
@@ -40,7 +44,10 @@ export default function HistoryPage() {
   }
 
   useEffect(() => {
-    getSettings(user).then((s) => setRoutines(s.routineOrder || []))
+    getSettings(user).then((s) => {
+      setSettings(s)
+      setRoutines(s.routineOrder || [])
+    })
   }, [user])
 
   useEffect(() => {
@@ -101,28 +108,47 @@ export default function HistoryPage() {
                   </Space>
                 }
                 extra={
-                  <Popconfirm
-                    title="이 운동 기록을 삭제할까요?"
-                    okText="삭제"
-                    cancelText="취소"
-                    okButtonProps={{ danger: true }}
-                    onConfirm={() => handleDelete(workout.id)}
-                  >
-                    <Button danger size="small">
-                      삭제
+                  <Space>
+                    <Button
+                      size="small"
+                      icon={<EditOutlined />}
+                      onClick={() => setEditing(workout)}
+                    >
+                      수정
                     </Button>
-                  </Popconfirm>
+                    <Popconfirm
+                      title="이 운동 기록을 삭제할까요?"
+                      okText="삭제"
+                      cancelText="취소"
+                      okButtonProps={{ danger: true }}
+                      onConfirm={() => handleDelete(workout.id)}
+                    >
+                      <Button danger size="small">
+                        삭제
+                      </Button>
+                    </Popconfirm>
+                  </Space>
                 }
               >
                 <Space direction="vertical" style={{ width: '100%' }} size={12}>
                   {(workout.exercises || []).map((ex, idx) => {
                     const isDetailed = ex.mode === 'detailed' && ex.setsDetail?.length
                     return (
-                      <Card key={`${ex.name}-${idx}`} size="small" type="inner" title={ex.name} extra={isDetailed ? <Tag>상세</Tag> : null}>
+                      <Card
+                        key={`${ex.name}-${idx}`}
+                        size="small"
+                        type="inner"
+                        title={ex.name}
+                        extra={isDetailed ? <Tag>상세</Tag> : null}
+                      >
                         {isDetailed ? (
                           <Space direction="vertical" style={{ width: '100%' }}>
                             {ex.setsDetail.map((set) => (
-                              <FlexRow key={set.set} label={`${set.set}세트`} value={`${set.weight ? `${set.weight}kg` : '-'} × ${set.reps ? `${set.reps}회` : '-'}`} />
+                              <FlexRow
+                                key={set.set}
+                                label={`${set.set}세트`}
+                                value={`${set.weight ? `${set.weight}kg` : '-'} × ${set.reps ? `${set.reps}회` : '-'}`}
+                              />
                             ))}
                           </Space>
                         ) : (
@@ -148,6 +174,15 @@ export default function HistoryPage() {
           </Space>
         )}
       </main>
+
+      <EditWorkoutDrawer
+        open={!!editing}
+        workout={editing}
+        settings={settings}
+        user={user}
+        onClose={() => setEditing(null)}
+        onSaved={() => load(filter)}
+      />
     </>
   )
 }

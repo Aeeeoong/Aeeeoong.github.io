@@ -160,6 +160,17 @@ export async function addWorkout(username, workout) {
   return newWorkout
 }
 
+export async function updateWorkout(username, workout) {
+  await ready(username)
+  if (workout?.id == null) throw new Error('수정할 기록 ID가 없습니다.')
+  const updated = {
+    ...workout,
+    updatedAt: new Date().toISOString(),
+  }
+  await setDoc(doc(workoutsCol(username), String(workout.id)), updated)
+  return updated
+}
+
 export async function deleteWorkout(username, id) {
   await ready(username)
   await deleteDoc(doc(workoutsCol(username), String(id)))

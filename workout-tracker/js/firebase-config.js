@@ -2,12 +2,12 @@
 // FIREBASE_SETUP.md 가이드를 따라 여기에 본인의 Firebase 구성 정보를 입력하세요
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDOw-42MCpUu9JWvbcRY4X-0Y6mp67oE_0",
+  authDomain: "workout-tracker-ec237.firebaseapp.com",
+  projectId: "workout-tracker-ec237",
+  storageBucket: "workout-tracker-ec237.firebasestorage.app",
+  messagingSenderId: "45881955462",
+  appId: "1:45881955462:web:dcd4859031f50a21aded07"
 };
 
 // Firebase 초기화

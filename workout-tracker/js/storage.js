@@ -388,7 +388,12 @@ class WorkoutStorage {
         imported = jsonStringOrObject;
       }
       
-      // Firebase에 데이터 추가
+      // localStorage에 저장 (항상)
+      this.data = imported;
+      this.saveData();
+      console.log('✅ localStorage에 저장 완료');
+      
+      // Firebase에도 데이터 추가 (설정되어 있다면)
       if (this.isFirebaseReady && window.db && window.userId) {
         // 운동 기록 추가
         if (imported.workouts && imported.workouts.length > 0) {
@@ -396,7 +401,7 @@ class WorkoutStorage {
             await window.db.collection('users').doc(window.userId)
               .collection('workouts').doc(String(workout.id)).set(workout);
           }
-          console.log(`✅ ${imported.workouts.length}개 운동 기록 임포트 완료`);
+          console.log(`✅ ${imported.workouts.length}개 운동 기록 Firebase에도 저장`);
         }
         
         // 인바디 기록 추가
@@ -405,20 +410,15 @@ class WorkoutStorage {
             await window.db.collection('users').doc(window.userId)
               .collection('inbody').doc(String(inbody.id)).set(inbody);
           }
-          console.log(`✅ ${imported.inbody.length}개 인바디 기록 임포트 완료`);
+          console.log(`✅ ${imported.inbody.length}개 인바디 기록 Firebase에도 저장`);
         }
         
         // 설정 업데이트
         if (imported.settings) {
           await window.db.collection('users').doc(window.userId)
             .collection('settings').doc('config').set(imported.settings);
-          this.data.settings = imported.settings;
-          console.log('✅ 설정 임포트 완료');
+          console.log('✅ 설정 Firebase에도 저장');
         }
-      } else {
-        // localStorage에 저장
-        this.data = imported;
-        this.saveData();
       }
       
       return true;

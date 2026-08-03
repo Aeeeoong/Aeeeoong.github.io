@@ -164,12 +164,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (file) {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        const success = storage.importData(event.target.result);
-        if (success) {
+        try {
+          await storage.importData(event.target.result);
           alert('데이터를 성공적으로 가져왔습니다! 📥');
           await renderHistory();
-        } else {
+        } catch (error) {
           alert('데이터 가져오기 실패. JSON 형식을 확인해주세요.');
+          console.error('Import error:', error);
         }
       };
       reader.readAsText(file);

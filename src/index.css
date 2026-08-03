@@ -1078,6 +1078,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .bottom-nav .nav-item {
     padding: 0.65rem 0.35rem;
   }
+
+  .summary-card .ant-statistic-title {
+    font-size: 12px;
+    margin-bottom: 2px;
+  }
+  .summary-card .ant-statistic-content {
+    font-size: 18px !important;
+  }
+  .summary-card .ant-statistic-content-suffix {
+    font-size: 12px;
+  }
+  .summary-card .ant-col {
+    text-align: center;
+  }
 }
 .login-container .ant-card {
   width: 100%;

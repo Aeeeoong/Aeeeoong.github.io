@@ -92,22 +92,22 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            <Card size="small" style={{ marginBottom: 16 }}>
-              <Row gutter={16}>
-                <Col span={6}>
+            <Card size="small" className="summary-card" style={{ marginBottom: 16 }}>
+              <Row gutter={[12, 16]}>
+                <Col xs={12} sm={6}>
                   <Statistic title="총 운동" value={stats?.totalWorkouts ?? 0} />
                 </Col>
-                <Col span={6}>
+                <Col xs={12} sm={6}>
                   <Statistic title="7일" value={stats?.recentWorkouts ?? 0} />
                 </Col>
-                <Col span={6}>
+                <Col xs={12} sm={6}>
                   <Statistic
                     title="체중"
                     value={latestInbody ? formatNumber(latestInbody.weight) : '-'}
                     suffix={latestInbody ? 'kg' : ''}
                   />
                 </Col>
-                <Col span={6}>
+                <Col xs={12} sm={6}>
                   <Statistic
                     title="골격근"
                     value={latestInbody ? formatNumber(latestInbody.muscleMass) : '-'}

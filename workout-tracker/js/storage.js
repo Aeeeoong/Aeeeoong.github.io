@@ -235,7 +235,7 @@ class WorkoutStorage {
       id: Date.now(),
       date: inbody.date,
       weight: parseFloat(inbody.weight),
-      muscle: parseFloat(inbody.muscle),
+      muscleMass: parseFloat(inbody.muscleMass || inbody.muscle),
       bodyFat: parseFloat(inbody.bodyFat),
       createdAt: new Date().toISOString()
     };

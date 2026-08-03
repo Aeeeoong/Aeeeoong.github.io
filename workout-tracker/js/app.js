@@ -503,7 +503,7 @@ const pages = {
       document.getElementById('last-weight').textContent = 
         `최근: ${utils.formatNumber(latest.weight)}kg`;
       document.getElementById('last-muscle').textContent = 
-        `최근: ${utils.formatNumber(latest.muscle)}kg`;
+        `최근: ${utils.formatNumber(latest.muscleMass)}kg`;
       document.getElementById('last-bodyfat').textContent = 
         `최근: ${utils.formatNumber(latest.bodyFat)}%`;
     }

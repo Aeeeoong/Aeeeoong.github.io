@@ -25,21 +25,19 @@ async function initializeFirebase() {
     // Firebase 앱 초기화
     const app = firebase.initializeApp(firebaseConfig);
     
-    // Firestore 초기화
+    // Firestore 초기화 (즉시 window에 할당)
     db = firebase.firestore();
+    window.db = db;
+    console.log('✅ Firestore 초기화 완료');
     
     // 익명 인증 (간단한 개인 사용)
-    await firebase.auth().signInAnonymously();
+    const userCredential = await firebase.auth().signInAnonymously();
+    userId = userCredential.user.uid;
+    window.userId = userId;
+    console.log('✅ Firebase 연결 완료! User ID:', userId);
     
-    firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        userId = user.uid;
-        console.log('✅ Firebase 연결 완료! User ID:', userId);
-        
-        // localStorage 데이터가 있으면 마이그레이션
-        migrateFromLocalStorage();
-      }
-    });
+    // localStorage 데이터가 있으면 마이그레이션
+    migrateFromLocalStorage();
     
     return true;
   } catch (error) {

@@ -11,19 +11,19 @@ class WorkoutStorage {
 
   // Firebase 준비 대기
   async waitForFirebase() {
-    const maxWait = 50; // 5초 대기
+    const maxWait = 100; // 10초 대기 (증가)
     let attempts = 0;
     
-    while (!window.db && attempts < maxWait) {
+    while (!window.db && !window.userId && attempts < maxWait) {
       await new Promise(resolve => setTimeout(resolve, 100));
       attempts++;
     }
     
-    if (window.db) {
+    if (window.db && window.userId) {
       this.isFirebaseReady = true;
-      console.log('✅ Firebase 연결 완료');
+      console.log('✅ Storage: Firebase 준비 완료, User ID:', window.userId);
     } else {
-      console.warn('⚠️ Firebase 연결 실패, localStorage 사용');
+      console.warn('⚠️ Storage: Firebase 타임아웃, localStorage 사용');
     }
   }
 

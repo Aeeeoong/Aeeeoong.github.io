@@ -15,13 +15,14 @@ import {
   Typography,
 } from 'antd'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+import CardioExerciseInputs from './CardioExerciseInputs'
 import DateField from './DateField'
 import {
   emptyExercise,
   exerciseFromSaved,
   serializeExercises,
 } from '../lib/workoutForm'
-import { getExerciseProfile, inputNumberPropsForProfile } from '../lib/exerciseConfig'
+import { getExerciseProfile, inputNumberPropsForProfile, isCardioProfile } from '../lib/exerciseConfig'
 import { updateWorkout } from '../services/storage'
 
 const { Text } = Typography
@@ -37,8 +38,8 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
     if (!open || !workout) return
     setDate(workout.date)
     setType(workout.type)
-    setExercises((workout.exercises || []).map(exerciseFromSaved))
-  }, [open, workout])
+    setExercises((workout.exercises || []).map((ex) => exerciseFromSaved(ex, settings)))
+  }, [open, workout, settings])
 
   const routineOptions = useMemo(
     () => (settings?.routineOrder || []).map((name) => ({ value: name, label: name })),
@@ -66,11 +67,10 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
   function handleTypeChange(nextType) {
     setType(nextType)
     const names = settings?.exercises?.[nextType] || []
-    // 루틴 바꾸면 해당 루틴 기본 운동으로 교체 (기존 같은 이름 값은 유지)
     setExercises((prev) => {
       const byName = Object.fromEntries(prev.map((ex) => [ex.name, ex]))
       if (names.length === 0) return prev
-      return names.map((name) => byName[name] || emptyExercise(name))
+      return names.map((name) => byName[name] || emptyExercise(name, settings))
     })
   }
 
@@ -97,12 +97,12 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
       ),
       okText: '추가',
       cancelText: '취소',
-      onOk: () => setExercises((prev) => [...prev, emptyExercise(selected)]),
+      onOk: () => setExercises((prev) => [...prev, emptyExercise(selected, settings)]),
     })
   }
 
   async function handleSave() {
-    const result = serializeExercises(exercises)
+    const result = serializeExercises(exercises, settings)
     if (result.error) {
       message.warning(result.error)
       return
@@ -157,6 +157,7 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         {exercises.map((ex, index) => {
           const profile = getExerciseProfile(ex.name, settings)
+          const isCardio = ex.mode === 'cardio' || isCardioProfile(profile)
           return (
           <Card
             key={`${ex.name}-${index}`}
@@ -164,15 +165,17 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
             title={ex.name}
             extra={
               <Space>
-                <Segmented
-                  size="small"
-                  value={ex.mode}
-                  options={[
-                    { label: '간편', value: 'simple' },
-                    { label: '상세', value: 'detailed' },
-                  ]}
-                  onChange={(mode) => updateExercise(index, { mode })}
-                />
+                {!isCardio && (
+                  <Segmented
+                    size="small"
+                    value={ex.mode}
+                    options={[
+                      { label: '간편', value: 'simple' },
+                      { label: '상세', value: 'detailed' },
+                    ]}
+                    onChange={(mode) => updateExercise(index, { mode })}
+                  />
+                )}
                 <Button
                   type="text"
                   danger
@@ -182,7 +185,15 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
               </Space>
             }
           >
-            {ex.mode === 'simple' ? (
+            {isCardio ? (
+              <CardioExerciseInputs
+                ex={ex}
+                ph={{}}
+                index={index}
+                updateExercise={updateExercise}
+                profile={profile}
+              />
+            ) : ex.mode === 'simple' ? (
               <div className="simple-exercise-inputs">
                 <Form.Item label={profile.inputLabel} className="field-weight" style={{ marginBottom: 8 }}>
                   <InputNumber

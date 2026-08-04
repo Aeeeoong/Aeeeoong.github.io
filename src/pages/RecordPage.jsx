@@ -18,7 +18,7 @@ import {
 } from 'antd'
 import { DeleteOutlined, HolderOutlined, HistoryOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
-import DateField from '../components/DateField'
+import CardioExerciseInputs from '../components/CardioExerciseInputs'
 import {
   ExerciseCompareHint,
   ExerciseDoneBadge,
@@ -28,7 +28,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { addWorkout, getSettings, getWorkouts } from '../services/storage'
 import { emptyExercise, exerciseFromSaved, serializeExercises } from '../lib/workoutForm'
-import { getExerciseProfile, inputNumberPropsForProfile } from '../lib/exerciseConfig'
+import { getExerciseProfile, inputNumberPropsForProfile, isCardioProfile } from '../lib/exerciseConfig'
 import {
   checkPersonalBest,
   findPreviousExercise,
@@ -173,15 +173,19 @@ export default function RecordPage() {
     let cancelled = false
     async function setup() {
       const names = settings.exercises[type] || []
-      setExercises(names.map((name) => emptyExercise(name)))
+      setExercises(names.map((name) => emptyExercise(name, settings)))
       const recent = await getWorkouts(user)
       if (cancelled) return
       const recentWorkout = recent.find((w) => w.type === type)
       const map = {}
       names.forEach((name) => {
-        map[name] = { weight: null, sets: null, reps: null }
+        map[name] = { weight: null, sets: null, reps: null, cardio: null }
         const recentExercise = recentWorkout?.exercises?.find((e) => e.name === name)
         if (!recentExercise) return
+        if (recentExercise.mode === 'cardio' && recentExercise.cardio) {
+          map[name] = { cardio: { ...recentExercise.cardio } }
+          return
+        }
         if (recentExercise.mode === 'detailed' && recentExercise.setsDetail?.length) {
           const maxSet = recentExercise.setsDetail.reduce((max, set) =>
             (set.weight || 0) > (max.weight || 0) ? set : max,
@@ -353,7 +357,7 @@ export default function RecordPage() {
       ),
       okText: '추가',
       cancelText: '취소',
-      onOk: () => setExercises((prev) => [...prev, emptyExercise(selected)]),
+      onOk: () => setExercises((prev) => [...prev, emptyExercise(selected, settings)]),
     })
   }
 
@@ -373,7 +377,7 @@ export default function RecordPage() {
   }
 
   async function handleSave() {
-    const result = serializeExercises(exercises)
+    const result = serializeExercises(exercises, settings)
     if (result.error) {
       message.warning(result.error)
       return
@@ -405,7 +409,7 @@ export default function RecordPage() {
       okText: '불러오기',
       cancelText: '취소',
       onOk: () => {
-        setExercises(last.exercises.map(exerciseFromSaved))
+        setExercises(last.exercises.map((ex) => exerciseFromSaved(ex, settings)))
         setDraftStatus('restored')
         message.success('지난번 기록을 불러왔습니다.')
       },
@@ -503,7 +507,8 @@ export default function RecordPage() {
               const ph = placeholders[ex.name] || {}
               const prev = findPreviousExercise(allWorkouts, type, ex.name)
               const profile = getExerciseProfile(ex.name, settings)
-              const pr = checkPersonalBest(ex.name, ex, personalBests, profile)
+              const isCardio = ex.mode === 'cardio' || isCardioProfile(profile)
+              const pr = isCardio ? null : checkPersonalBest(ex.name, ex, personalBests, profile)
               const filled = isExerciseFilled(ex)
               const bestEntry = personalBests[ex.name]
               const cardClass = [
@@ -545,15 +550,17 @@ export default function RecordPage() {
                   }
                   extra={
                     <Space>
-                      <Segmented
-                        size="small"
-                        value={ex.mode}
-                        options={[
-                          { label: '간편', value: 'simple' },
-                          { label: '상세', value: 'detailed' },
-                        ]}
-                        onChange={(mode) => updateExercise(index, { mode })}
-                      />
+                      {!isCardio && (
+                        <Segmented
+                          size="small"
+                          value={ex.mode}
+                          options={[
+                            { label: '간편', value: 'simple' },
+                            { label: '상세', value: 'detailed' },
+                          ]}
+                          onChange={(mode) => updateExercise(index, { mode })}
+                        />
+                      )}
                       <Button
                         type="text"
                         danger
@@ -563,7 +570,15 @@ export default function RecordPage() {
                     </Space>
                   }
                 >
-                  {ex.mode === 'simple' ? (
+                  {isCardio ? (
+                    <CardioExerciseInputs
+                      ex={ex}
+                      ph={ph}
+                      index={index}
+                      updateExercise={updateExercise}
+                      profile={profile}
+                    />
+                  ) : ex.mode === 'simple' ? (
                     <>
                       <SimpleExerciseInputs
                         ex={ex}

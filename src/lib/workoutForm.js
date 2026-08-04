@@ -1,4 +1,20 @@
-export function emptyExercise(name) {
+import {
+  emptyCardioForProfile,
+  getExerciseProfile,
+  isCardioProfile,
+  normalizeCardioForSave,
+} from './exerciseConfig'
+
+export function emptyExercise(name, settings = null) {
+  const profile = getExerciseProfile(name, settings)
+  if (isCardioProfile(profile)) {
+    return {
+      name,
+      mode: 'cardio',
+      cardio: emptyCardioForProfile(profile),
+      comment: '',
+    }
+  }
   return {
     name,
     mode: 'simple',
@@ -17,7 +33,23 @@ export function emptyExercise(name) {
 }
 
 /** Firestore에 저장된 운동 → 편집 폼 상태 */
-export function exerciseFromSaved(ex) {
+export function exerciseFromSaved(ex, settings = null) {
+  const profile = getExerciseProfile(ex.name, settings)
+  if (ex.mode === 'cardio' || isCardioProfile(profile)) {
+    const base = emptyCardioForProfile(profile)
+    return {
+      name: ex.name,
+      mode: 'cardio',
+      cardio: {
+        ...base,
+        incline: ex.cardio?.incline ?? base.incline ?? null,
+        speed: ex.cardio?.speed ?? null,
+        minutes: ex.cardio?.minutes ?? null,
+      },
+      comment: ex.comment || '',
+    }
+  }
+
   if (ex.mode === 'detailed' && ex.setsDetail?.length) {
     return {
       name: ex.name,
@@ -51,9 +83,26 @@ export function exerciseFromSaved(ex) {
 }
 
 /** 편집 폼 상태 → 저장용 exercises 배열. 비어 있으면 에러 메시지 문자열 반환 */
-export function serializeExercises(exercises) {
+export function serializeExercises(exercises, settings = null) {
   const workoutExercises = exercises
     .map((ex) => {
+      const profile = getExerciseProfile(ex.name, settings)
+
+      if (ex.mode === 'cardio' || isCardioProfile(profile)) {
+        const cardio = normalizeCardioForSave(ex.cardio, profile)
+        const hasData =
+          cardio.speed != null ||
+          cardio.minutes != null ||
+          (cardio.incline != null && profile.inclineFixed == null)
+        if (!hasData && !ex.comment) return null
+        return {
+          name: ex.name,
+          mode: 'cardio',
+          cardio,
+          comment: ex.comment || '',
+        }
+      }
+
       if (ex.mode === 'simple') {
         if (ex.weight != null || ex.sets != null || ex.reps != null || ex.comment) {
           return {

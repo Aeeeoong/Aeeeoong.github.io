@@ -3,6 +3,7 @@ import {
   formatExerciseValue,
   getExerciseProfile,
   improvementDelta,
+  isCardioProfile,
   isPersonalBestValue,
   personalBestLabel,
   tracksPersonalBest,
@@ -66,6 +67,10 @@ export function getExerciseEstimated1RM(exercise, profile) {
 
 export function isExerciseFilled(exercise) {
   if (exercise.comment?.trim()) return true
+  if (exercise.mode === 'cardio') {
+    const c = exercise.cardio || {}
+    return c.speed != null || c.minutes != null || c.incline != null
+  }
   if (exercise.mode === 'simple') {
     return exercise.weight != null || exercise.sets != null || exercise.reps != null
   }
@@ -563,9 +568,28 @@ export function getWorkoutDateSet(workouts) {
 export function getExerciseSummary(progress, exerciseName, bests, profile) {
   if (!progress.length) return null
 
+  const totalSessions = progress.length
+
+  if (isCardioProfile(profile)) {
+    const minutesList = progress
+      .map((p) => p.cardio?.minutes ?? p.minutes)
+      .filter((m) => m != null && m > 0)
+    const totalMinutes = minutesList.reduce((sum, m) => sum + m, 0)
+    const longestMinutes = minutesList.length ? Math.max(...minutesList) : null
+
+    return {
+      totalSessions,
+      totalMinutes,
+      longestMinutes,
+      allTimeBest: longestMinutes,
+      pbLabel: '최장 시간',
+      isCardio: true,
+      profile,
+    }
+  }
+
   const weights = progress.map((p) => p.weight).filter((w) => w != null && w > 0)
   const maxWeight = weights.length ? Math.max(...weights) : null
-  const totalSessions = progress.length
   const totalReps = progress.reduce((sum, p) => {
     if (p.mode === 'detailed' && p.setsDetail?.length) {
       return sum + p.setsDetail.reduce((s, set) => s + (Number(set.reps) || 0), 0)
@@ -583,6 +607,7 @@ export function getExerciseSummary(progress, exerciseName, bests, profile) {
     allTimeBest: best?.bestValue ?? maxWeight,
     bestDate: best?.bestDate,
     pbLabel,
+    isCardio: false,
     profile,
   }
 }

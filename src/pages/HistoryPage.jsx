@@ -19,6 +19,7 @@ import EditWorkoutDrawer from '../components/EditWorkoutDrawer'
 import { useAuth } from '../context/AuthContext'
 import { deleteWorkout, getSettings, getWorkouts } from '../services/storage'
 import { displayDate, getRelativeTime } from '../lib/utils'
+import { formatCardioSummary, getExerciseProfile, isCardioProfile } from '../lib/exerciseConfig'
 
 const { Text } = Typography
 
@@ -163,16 +164,20 @@ export default function HistoryPage() {
               >
                 <Space direction="vertical" style={{ width: '100%' }} size={12}>
                   {(workout.exercises || []).map((ex, idx) => {
-                    const isDetailed = ex.mode === 'detailed' && ex.setsDetail?.length
+                    const profile = getExerciseProfile(ex.name, settings)
+                    const isCardio = ex.mode === 'cardio' || isCardioProfile(profile)
+                    const isDetailed = !isCardio && ex.mode === 'detailed' && ex.setsDetail?.length
                     return (
                       <Card
                         key={`${ex.name}-${idx}`}
                         size="small"
                         type="inner"
                         title={ex.name}
-                        extra={isDetailed ? <Tag>상세</Tag> : null}
+                        extra={isDetailed ? <Tag>상세</Tag> : isCardio ? <Tag color="cyan">유산소</Tag> : null}
                       >
-                        {isDetailed ? (
+                        {isCardio ? (
+                          <Text type="secondary">{formatCardioSummary(ex.cardio, profile)}</Text>
+                        ) : isDetailed ? (
                           <Space direction="vertical" style={{ width: '100%' }}>
                             {ex.setsDetail.map((set) => (
                               <FlexRow

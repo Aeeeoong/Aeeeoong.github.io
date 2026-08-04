@@ -33,6 +33,10 @@ export function hasDraftContent(exercises) {
   if (!exercises?.length) return false
   return exercises.some((ex) => {
     if (ex.comment?.trim()) return true
+    if (ex.mode === 'cardio') {
+      const c = ex.cardio || {}
+      return c.speed != null || c.minutes != null || c.incline != null
+    }
     if (ex.mode === 'simple') {
       return ex.weight != null || ex.sets != null || ex.reps != null
     }

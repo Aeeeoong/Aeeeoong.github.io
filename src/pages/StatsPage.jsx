@@ -23,8 +23,10 @@ import {
 } from '../services/storage'
 import {
   chartValueLabel,
+  formatCardioSummary,
   formatExerciseValue,
   getExerciseProfile,
+  isCardioProfile,
   personalBestLabel,
   statisticValueSuffix,
   tracksPersonalBest,
@@ -167,6 +169,53 @@ export default function StatsPage() {
       const d = new Date(p.date)
       return `${d.getMonth() + 1}/${d.getDate()}`
     })
+
+    if (isCardioProfile(profile)) {
+      const data = progress.map((p) => p.cardio?.minutes ?? p.minutes ?? null)
+      const datasetLabel = chartValueLabel(exercise, profile)
+      const yRange = calcYRange(data.filter((v) => v != null))
+
+      return {
+        data: {
+          labels,
+          datasets: [
+            {
+              label: datasetLabel,
+              data,
+              borderColor: '#06b6d4',
+              backgroundColor: 'rgba(6, 182, 212, 0.1)',
+              tension: 0.3,
+              fill: true,
+              pointRadius: 5,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              min: 0,
+              max: yRange.max,
+              ticks: { stepSize: 1, precision: 0 },
+            },
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label(ctx) {
+                  const p = progress[ctx.dataIndex]
+                  const summary = formatCardioSummary(p?.cardio, profile)
+                  return `${datasetLabel}: ${ctx.parsed.y}분 (${summary})`
+                },
+              },
+            },
+          },
+        },
+      }
+    }
+
     const hasWeight = progress.some((p) => p.weight != null && p.weight > 0)
     const data = hasWeight ? progress.map((p) => p.weight) : progress.map((p) => p.reps)
     const datasetLabel = hasWeight ? chartValueLabel(exercise, profile) : `${exercise} 회수`
@@ -297,23 +346,43 @@ export default function StatsPage() {
 
           {exerciseSummary ? (
             <Row gutter={[12, 16]} style={{ marginBottom: 16 }}>
-              <Col xs={8}>
-                <Statistic
-                  title={exerciseSummary.pbLabel || '역대 최고'}
-                  value={
-                    usesIntegerValue(exerciseProfile)
-                      ? exerciseSummary.allTimeBest
-                      : formatNumber(exerciseSummary.allTimeBest)
-                  }
-                  suffix={statisticValueSuffix(exerciseProfile)}
-                />
-              </Col>
-              <Col xs={8}>
-                <Statistic title="기록 횟수" value={exerciseSummary.totalSessions} suffix="번" />
-              </Col>
-              <Col xs={8}>
-                <Statistic title="총 횟수" value={exerciseSummary.totalReps} suffix="회" />
-              </Col>
+              {exerciseSummary.isCardio ? (
+                <>
+                  <Col xs={8}>
+                    <Statistic
+                      title={exerciseSummary.pbLabel || '최장 시간'}
+                      value={exerciseSummary.longestMinutes ?? '-'}
+                      suffix="분"
+                    />
+                  </Col>
+                  <Col xs={8}>
+                    <Statistic title="기록 횟수" value={exerciseSummary.totalSessions} suffix="번" />
+                  </Col>
+                  <Col xs={8}>
+                    <Statistic title="총 시간" value={exerciseSummary.totalMinutes ?? 0} suffix="분" />
+                  </Col>
+                </>
+              ) : (
+                <>
+                  <Col xs={8}>
+                    <Statistic
+                      title={exerciseSummary.pbLabel || '역대 최고'}
+                      value={
+                        usesIntegerValue(exerciseProfile)
+                          ? exerciseSummary.allTimeBest
+                          : formatNumber(exerciseSummary.allTimeBest)
+                      }
+                      suffix={statisticValueSuffix(exerciseProfile)}
+                    />
+                  </Col>
+                  <Col xs={8}>
+                    <Statistic title="기록 횟수" value={exerciseSummary.totalSessions} suffix="번" />
+                  </Col>
+                  <Col xs={8}>
+                    <Statistic title="총 횟수" value={exerciseSummary.totalReps} suffix="회" />
+                  </Col>
+                </>
+              )}
             </Row>
           ) : (
             <Empty description="선택한 운동의 기록이 없습니다" style={{ marginBottom: 16 }} />

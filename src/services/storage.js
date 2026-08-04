@@ -239,6 +239,17 @@ export async function getExerciseProgress(username, exerciseName) {
       const exercise = workout.exercises?.find((e) => e.name === exerciseName)
       if (!exercise) return
 
+      if (exercise.mode === 'cardio' && exercise.cardio) {
+        progress.push({
+          date: workout.date,
+          mode: 'cardio',
+          cardio: exercise.cardio,
+          minutes: exercise.cardio.minutes ? parseFloat(exercise.cardio.minutes) : null,
+          comment: exercise.comment || '',
+        })
+        return
+      }
+
       let weight
       let sets
       let reps

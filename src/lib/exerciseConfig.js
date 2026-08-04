@@ -1,5 +1,11 @@
-/** @typedef {'kg' | 'level' | 'assist' | 'none'} ExerciseUnit */
+/** @typedef {'kg' | 'level' | 'assist' | 'none' | 'cardio'} ExerciseUnit */
 /** @typedef {'higher' | 'lower'} ExerciseBetter */
+
+const CARDIO_FIELD_DEFS = {
+  incline: { label: '경사', suffix: '%', step: 0.5, precision: 1, min: 0, max: 30 },
+  speed: { label: '속도', suffix: 'km/h', step: 0.1, precision: 1, min: 0 },
+  minutes: { label: '시간', suffix: '분', step: 1, precision: 0, min: 1, max: 180 },
+}
 
 /** 사용 중인 기구 기준 — 특이 케이스만 등록, 나머지는 kg */
 export const DEFAULT_EXERCISE_PROFILES = {
@@ -48,6 +54,25 @@ export const DEFAULT_EXERCISE_PROFILES = {
     inputLabel: '회',
     suffix: '',
   },
+  '천국의 계단': {
+    unit: 'cardio',
+    better: 'higher',
+    useE1RM: false,
+    cardioFields: ['speed', 'minutes'],
+  },
+  '런닝머신 (평지)': {
+    unit: 'cardio',
+    better: 'higher',
+    useE1RM: false,
+    cardioFields: ['speed', 'minutes'],
+    inclineFixed: 0,
+  },
+  '런닝머신 (경사)': {
+    unit: 'cardio',
+    better: 'higher',
+    useE1RM: false,
+    cardioFields: ['incline', 'speed', 'minutes'],
+  },
 }
 
 const FALLBACK_PROFILE = {
@@ -64,6 +89,59 @@ export function getExerciseProfile(name, settings) {
   const base = DEFAULT_EXERCISE_PROFILES[name] || FALLBACK_PROFILE
   const custom = settings?.exerciseProfiles?.[name]
   return custom ? { ...base, ...custom } : { ...base }
+}
+
+export function isCardioProfile(profile) {
+  return profile?.unit === 'cardio'
+}
+
+export function getCardioFieldDefs(profile) {
+  return (profile?.cardioFields || []).map((key) => ({
+    key,
+    ...CARDIO_FIELD_DEFS[key],
+  }))
+}
+
+export function emptyCardioForProfile(profile) {
+  const cardio = {}
+  for (const { key } of getCardioFieldDefs(profile)) {
+    if (key === 'incline' && profile.inclineFixed != null) {
+      cardio.incline = profile.inclineFixed
+    } else {
+      cardio[key] = null
+    }
+  }
+  return cardio
+}
+
+export function normalizeCardioForSave(cardio, profile) {
+  const out = {}
+  if (!cardio) return out
+  for (const { key } of getCardioFieldDefs(profile)) {
+    if (cardio[key] != null && cardio[key] !== '') {
+      out[key] = Number(cardio[key])
+    }
+  }
+  if (profile.inclineFixed != null) {
+    out.incline = profile.inclineFixed
+  }
+  return out
+}
+
+export function formatCardioSummary(cardio, profile) {
+  if (!cardio || !profile) return '-'
+  const parts = []
+  for (const { key, suffix } of getCardioFieldDefs(profile)) {
+    const v = cardio[key]
+    if (v == null || v === '') continue
+    if (key === 'incline' && profile.inclineFixed != null) continue
+    const formatted = key === 'speed' ? `${v}${suffix}` : `${v}${suffix}`
+    parts.push(formatted)
+  }
+  if (profile.inclineFixed != null && cardio.incline != null && !parts.some((p) => p.includes('%'))) {
+    // flat treadmill — incline 0 stored but not shown in fields
+  }
+  return parts.length ? parts.join(' · ') : '-'
 }
 
 export function formatExerciseValue(value, profile) {
@@ -99,29 +177,31 @@ export function isPersonalBestValue(current, bestValue, profile) {
 }
 
 export function personalBestLabel(profile) {
-  if (profile?.unit === 'none') return ''
+  if (profile?.unit === 'none' || profile?.unit === 'cardio') return ''
   return profile.better === 'lower' ? '역대 최저' : '역대 최고'
 }
 
 /** 무게·레벨·보조 등 PR 추적 대상인지 */
 export function tracksPersonalBest(profile) {
-  return profile?.unit !== 'none'
+  return profile?.unit !== 'none' && profile?.unit !== 'cardio'
 }
 
 export function usesIntegerValue(profile) {
-  return profile.unit === 'level' || profile.unit === 'assist'
+  return profile?.unit === 'level' || profile?.unit === 'assist'
 }
 
 export function statisticValueSuffix(profile) {
   if (!profile) return 'kg'
   if (profile.unit === 'level') return '레벨'
   if (profile.unit === 'assist') return '보조'
+  if (profile.unit === 'cardio') return '분'
   return profile.suffix || 'kg'
 }
 
 /** 차트·축 라벨 */
 export function chartValueLabel(exerciseName, profile) {
   if (!exerciseName) return '기록'
+  if (isCardioProfile(profile)) return `${exerciseName} 시간 (분)`
   if (!profile) return `${exerciseName} 무게 (kg)`
   if (profile.unit === 'kg') {
     return `${exerciseName} ${profile.inputLabel} (${profile.suffix || 'kg'})`

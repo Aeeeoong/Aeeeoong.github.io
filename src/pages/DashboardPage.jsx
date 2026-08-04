@@ -117,7 +117,7 @@ export default function DashboardPage() {
               </Row>
             </Card>
 
-            <Card title="운동 달력" style={{ marginBottom: 16 }}>
+            <Card title="운동 달력" style={{ marginBottom: 16 }} className="dashboard-calendar-card">
               <Calendar
                 fullscreen={false}
                 mode="month"
@@ -163,6 +163,7 @@ export default function DashboardPage() {
 
             <Card
               title="최근 운동 기록"
+              className="dashboard-recent-card"
               extra={
                 <Link to="/history">
                   <Button type="link">전체보기</Button>

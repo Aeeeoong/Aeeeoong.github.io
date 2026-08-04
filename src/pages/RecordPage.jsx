@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   App,
@@ -14,30 +14,53 @@ import {
   Space,
   Typography,
 } from 'antd'
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+import { DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
 import DateField from '../components/DateField'
 import { useAuth } from '../context/AuthContext'
 import { addWorkout, getSettings, getWorkouts } from '../services/storage'
+import { emptyExercise, serializeExercises } from '../lib/workoutForm'
+import {
+  clearRecordDraft,
+  hasDraftContent,
+  loadRecordDraft,
+  saveRecordDraft,
+} from '../lib/recordDraft'
 import { getTodayString } from '../lib/utils'
 
 const { Text } = Typography
 
-function emptyExercise(name) {
-  return {
-    name,
-    mode: 'simple',
-    weight: null,
-    sets: null,
-    reps: null,
-    comment: '',
-    setsCount: 3,
-    setsDetail: [
-      { weight: null, reps: null },
-      { weight: null, reps: null },
-      { weight: null, reps: null },
-    ],
-  }
+function SimpleExerciseInputs({ ex, ph, index, updateExercise }) {
+  return (
+    <div className="simple-exercise-inputs">
+      <Form.Item label="무게" className="field-weight" style={{ marginBottom: 8 }}>
+        <InputNumber
+          style={{ width: '100%' }}
+          step={0.5}
+          precision={1}
+          placeholder={ph.weight != null ? String(ph.weight) : '0.0'}
+          value={ex.weight}
+          onChange={(v) => updateExercise(index, { weight: v })}
+        />
+      </Form.Item>
+      <Form.Item label="회" className="field-reps" style={{ marginBottom: 8 }}>
+        <InputNumber
+          style={{ width: '100%' }}
+          placeholder={ph.reps != null ? String(ph.reps) : '0'}
+          value={ex.reps}
+          onChange={(v) => updateExercise(index, { reps: v })}
+        />
+      </Form.Item>
+      <Form.Item label="세트" className="field-sets" style={{ marginBottom: 8 }}>
+        <InputNumber
+          style={{ width: '100%' }}
+          placeholder={ph.sets != null ? String(ph.sets) : '0'}
+          value={ex.sets}
+          onChange={(v) => updateExercise(index, { sets: v })}
+        />
+      </Form.Item>
+    </div>
+  )
 }
 
 export default function RecordPage() {
@@ -50,6 +73,12 @@ export default function RecordPage() {
   const [exercises, setExercises] = useState([])
   const [placeholders, setPlaceholders] = useState({})
   const [saving, setSaving] = useState(false)
+  const [draftChecked, setDraftChecked] = useState(false)
+  const [restoredFromDraft, setRestoredFromDraft] = useState(false)
+  const [draftSavedAt, setDraftSavedAt] = useState(null)
+  const [dragIndex, setDragIndex] = useState(null)
+  const [dragOverIndex, setDragOverIndex] = useState(null)
+  const touchDragRef = useRef(null)
 
   useEffect(() => {
     getSettings(user).then((s) => {
@@ -59,7 +88,29 @@ export default function RecordPage() {
   }, [user])
 
   useEffect(() => {
-    if (!settings || !type) return
+    if (!settings || draftChecked) return
+    setDraftChecked(true)
+    const draft = loadRecordDraft(user)
+    if (!draft?.exercises?.length || !hasDraftContent(draft.exercises)) return
+
+    modal.confirm({
+      title: '임시저장된 기록이 있습니다',
+      content: `${draft.date} · ${draft.type} 루틴 — 이어서 작성할까요?`,
+      okText: '불러오기',
+      cancelText: '새로 시작',
+      onOk: () => {
+        setDate(draft.date)
+        setType(draft.type)
+        setExercises(draft.exercises)
+        setDraftSavedAt(draft.savedAt)
+        setRestoredFromDraft(true)
+      },
+      onCancel: () => clearRecordDraft(user),
+    })
+  }, [settings, draftChecked, user, modal])
+
+  useEffect(() => {
+    if (!settings || !type || restoredFromDraft) return
     async function setup() {
       const names = settings.exercises[type] || []
       setExercises(names.map((name) => emptyExercise(name)))
@@ -90,12 +141,20 @@ export default function RecordPage() {
       setPlaceholders(map)
     }
     setup()
-  }, [settings, type, user])
+  }, [settings, type, user, restoredFromDraft])
 
-  const routineOptions = useMemo(
-    () => (settings?.routineOrder || []).map((name) => ({ value: name, label: name })),
-    [settings],
-  )
+  useEffect(() => {
+    if (!user || !settings || exercises.length === 0) return
+    if (!hasDraftContent(exercises)) return
+
+    const timer = setTimeout(() => {
+      saveRecordDraft(user, { date, type, exercises })
+      setDraftSavedAt(Date.now())
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [user, settings, date, type, exercises])
+
+  const routineOptions = (settings?.routineOrder || []).map((name) => ({ value: name, label: name }))
 
   function updateExercise(index, patch) {
     setExercises((prev) => prev.map((ex, i) => (i === index ? { ...ex, ...patch } : ex)))
@@ -113,6 +172,70 @@ export default function RecordPage() {
         return { ...ex, setsCount: n, setsDetail: next }
       }),
     )
+  }
+
+  function reorderExercises(fromIndex, toIndex) {
+    if (fromIndex === toIndex) return
+    setExercises((prev) => {
+      const next = [...prev]
+      const [item] = next.splice(fromIndex, 1)
+      next.splice(toIndex, 0, item)
+      return next
+    })
+  }
+
+  function handleDragStart(index) {
+    setDragIndex(index)
+  }
+
+  function handleDragOver(e, index) {
+    e.preventDefault()
+    setDragOverIndex(index)
+  }
+
+  function handleDrop(e, index) {
+    e.preventDefault()
+    if (dragIndex != null) reorderExercises(dragIndex, index)
+    setDragIndex(null)
+    setDragOverIndex(null)
+  }
+
+  function handleDragEnd() {
+    setDragIndex(null)
+    setDragOverIndex(null)
+  }
+
+  function handleHandlePointerDown(e, index) {
+    e.stopPropagation()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    touchDragRef.current = { index, pointerId: e.pointerId }
+    setDragIndex(index)
+  }
+
+  function handleHandlePointerMove(e) {
+    const active = touchDragRef.current
+    if (!active || active.pointerId !== e.pointerId) return
+    const el = document.elementFromPoint(e.clientX, e.clientY)
+    const card = el?.closest('[data-exercise-index]')
+    if (card) {
+      setDragOverIndex(Number(card.dataset.exerciseIndex))
+    }
+  }
+
+  function handleHandlePointerUp(e) {
+    const active = touchDragRef.current
+    if (!active || active.pointerId !== e.pointerId) return
+    if (dragOverIndex != null && active.index !== dragOverIndex) {
+      reorderExercises(active.index, dragOverIndex)
+    }
+    touchDragRef.current = null
+    setDragIndex(null)
+    setDragOverIndex(null)
+  }
+
+  function handleTypeChange(nextType) {
+    setRestoredFromDraft(false)
+    setType(nextType)
   }
 
   function addExercise() {
@@ -143,60 +266,17 @@ export default function RecordPage() {
   }
 
   async function handleSave() {
-    const workoutExercises = exercises
-      .map((ex) => {
-        if (ex.mode === 'simple') {
-          if (ex.weight != null || ex.sets != null || ex.reps != null || ex.comment) {
-            return {
-              name: ex.name,
-              mode: 'simple',
-              weight: ex.weight != null ? Number(ex.weight) : null,
-              sets: ex.sets != null ? Number(ex.sets) : null,
-              reps: ex.reps != null ? Number(ex.reps) : null,
-              comment: ex.comment || '',
-            }
-          }
-          return null
-        }
-        const setsDetail = (ex.setsDetail || [])
-          .map((s, i) => ({
-            set: i + 1,
-            weight: s.weight != null ? Number(s.weight) : null,
-            reps: s.reps != null ? Number(s.reps) : null,
-          }))
-          .filter((s) => s.weight != null || s.reps != null)
-
-        if (setsDetail.length === 0 && !ex.comment) return null
-
-        const avgWeight =
-          setsDetail.length > 0
-            ? setsDetail.reduce((sum, s) => sum + (s.weight || 0), 0) / setsDetail.length
-            : null
-        const avgReps =
-          setsDetail.length > 0
-            ? setsDetail.reduce((sum, s) => sum + (s.reps || 0), 0) / setsDetail.length
-            : null
-
-        return {
-          name: ex.name,
-          mode: 'detailed',
-          weight: avgWeight,
-          sets: setsDetail.length,
-          reps: avgReps ? Math.round(avgReps) : null,
-          setsDetail,
-          comment: ex.comment || '',
-        }
-      })
-      .filter(Boolean)
-
-    if (workoutExercises.length === 0) {
-      message.warning('최소 1개 이상의 운동을 입력해주세요.')
+    const result = serializeExercises(exercises)
+    if (result.error) {
+      message.warning(result.error)
       return
     }
 
     setSaving(true)
     try {
-      await addWorkout(user, { date, type, exercises: workoutExercises })
+      await addWorkout(user, { date, type, exercises: result.exercises })
+      clearRecordDraft(user)
+      setDraftSavedAt(null)
       message.success('운동 기록이 Firebase에 저장되었습니다!')
       navigate('/')
     } catch (err) {
@@ -205,6 +285,24 @@ export default function RecordPage() {
       setSaving(false)
     }
   }
+
+  function clearDraft() {
+    modal.confirm({
+      title: '임시저장을 삭제할까요?',
+      okText: '삭제',
+      cancelText: '취소',
+      okButtonProps: { danger: true },
+      onOk: () => {
+        clearRecordDraft(user)
+        setDraftSavedAt(null)
+        message.success('임시저장이 삭제되었습니다.')
+      },
+    })
+  }
+
+  const draftTimeLabel =
+    draftSavedAt &&
+    new Date(draftSavedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 
   return (
     <>
@@ -218,6 +316,16 @@ export default function RecordPage() {
       />
       <main className="container">
         <Card title="오늘의 운동">
+          {draftTimeLabel && (
+            <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                임시저장됨 · {draftTimeLabel}
+              </Text>
+              <Button type="link" size="small" danger onClick={clearDraft}>
+                임시저장 삭제
+              </Button>
+            </Flex>
+          )}
           <Form layout="vertical">
             <Form.Item label="운동 날짜">
               <DateField value={date} onChange={setDate} />
@@ -227,7 +335,7 @@ export default function RecordPage() {
                 size="large"
                 value={type || undefined}
                 options={routineOptions}
-                onChange={setType}
+                onChange={handleTypeChange}
                 style={{ width: '100%' }}
               />
             </Form.Item>
@@ -236,11 +344,41 @@ export default function RecordPage() {
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             {exercises.map((ex, index) => {
               const ph = placeholders[ex.name] || {}
+              const cardClass = [
+                'exercise-card-draggable',
+                dragIndex === index ? 'dragging' : '',
+                dragOverIndex === index && dragIndex !== index ? 'drag-over' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')
+
               return (
                 <Card
                   key={`${ex.name}-${index}`}
                   size="small"
-                  title={ex.name}
+                  className={cardClass}
+                  data-exercise-index={index}
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={handleDragEnd}
+                  title={
+                    <Flex align="center" gap={8}>
+                      <span
+                        className="drag-handle"
+                        role="button"
+                        aria-label="순서 변경"
+                        onPointerDown={(e) => handleHandlePointerDown(e, index)}
+                        onPointerMove={handleHandlePointerMove}
+                        onPointerUp={handleHandlePointerUp}
+                        onPointerCancel={handleHandlePointerUp}
+                      >
+                        <HolderOutlined />
+                      </span>
+                      <span>{ex.name}</span>
+                    </Flex>
+                  }
                   extra={
                     <Space>
                       <Segmented
@@ -262,33 +400,12 @@ export default function RecordPage() {
                   }
                 >
                   {ex.mode === 'simple' ? (
-                    <Flex gap={8} wrap="wrap">
-                      <Form.Item label="무게 (kg)" style={{ marginBottom: 8, flex: 1, minWidth: 100 }}>
-                        <InputNumber
-                          style={{ width: '100%' }}
-                          step={0.5}
-                          placeholder={ph.weight != null ? String(ph.weight) : '0'}
-                          value={ex.weight}
-                          onChange={(v) => updateExercise(index, { weight: v })}
-                        />
-                      </Form.Item>
-                      <Form.Item label="세트" style={{ marginBottom: 8, flex: 1, minWidth: 80 }}>
-                        <InputNumber
-                          style={{ width: '100%' }}
-                          placeholder={ph.sets != null ? String(ph.sets) : '0'}
-                          value={ex.sets}
-                          onChange={(v) => updateExercise(index, { sets: v })}
-                        />
-                      </Form.Item>
-                      <Form.Item label="회" style={{ marginBottom: 8, flex: 1, minWidth: 80 }}>
-                        <InputNumber
-                          style={{ width: '100%' }}
-                          placeholder={ph.reps != null ? String(ph.reps) : '0'}
-                          value={ex.reps}
-                          onChange={(v) => updateExercise(index, { reps: v })}
-                        />
-                      </Form.Item>
-                    </Flex>
+                    <SimpleExerciseInputs
+                      ex={ex}
+                      ph={ph}
+                      index={index}
+                      updateExercise={updateExercise}
+                    />
                   ) : (
                     <>
                       <Form.Item label="세트 수" style={{ marginBottom: 12 }}>
@@ -306,6 +423,7 @@ export default function RecordPage() {
                             <InputNumber
                               style={{ flex: 1 }}
                               step={0.5}
+                              precision={1}
                               placeholder="무게"
                               value={set.weight}
                               onChange={(v) => {

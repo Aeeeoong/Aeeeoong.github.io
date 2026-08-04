@@ -6,8 +6,9 @@ export function emptyExercise(name) {
     sets: null,
     reps: null,
     comment: '',
-    setsCount: 3,
+    setsCount: 4,
     setsDetail: [
+      { weight: null, reps: null },
       { weight: null, reps: null },
       { weight: null, reps: null },
       { weight: null, reps: null },
@@ -39,8 +40,9 @@ export function exerciseFromSaved(ex) {
     sets: ex.sets ?? null,
     reps: ex.reps ?? null,
     comment: ex.comment || '',
-    setsCount: 3,
+    setsCount: 4,
     setsDetail: [
+      { weight: null, reps: null },
       { weight: null, reps: null },
       { weight: null, reps: null },
       { weight: null, reps: null },

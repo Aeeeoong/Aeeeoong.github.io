@@ -180,30 +180,31 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
             }
           >
             {ex.mode === 'simple' ? (
-              <Flex gap={8} wrap="wrap">
-                <Form.Item label="무게 (kg)" style={{ marginBottom: 8, flex: 1, minWidth: 100 }}>
+              <div className="simple-exercise-inputs">
+                <Form.Item label="무게" className="field-weight" style={{ marginBottom: 8 }}>
                   <InputNumber
                     style={{ width: '100%' }}
                     step={0.5}
+                    precision={1}
                     value={ex.weight}
                     onChange={(v) => updateExercise(index, { weight: v })}
                   />
                 </Form.Item>
-                <Form.Item label="세트" style={{ marginBottom: 8, flex: 1, minWidth: 80 }}>
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    value={ex.sets}
-                    onChange={(v) => updateExercise(index, { sets: v })}
-                  />
-                </Form.Item>
-                <Form.Item label="회" style={{ marginBottom: 8, flex: 1, minWidth: 80 }}>
+                <Form.Item label="회" className="field-reps" style={{ marginBottom: 8 }}>
                   <InputNumber
                     style={{ width: '100%' }}
                     value={ex.reps}
                     onChange={(v) => updateExercise(index, { reps: v })}
                   />
                 </Form.Item>
-              </Flex>
+                <Form.Item label="세트" className="field-sets" style={{ marginBottom: 8 }}>
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    value={ex.sets}
+                    onChange={(v) => updateExercise(index, { sets: v })}
+                  />
+                </Form.Item>
+              </div>
             ) : (
               <>
                 <Form.Item label="세트 수" style={{ marginBottom: 12 }}>
@@ -221,6 +222,7 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
                       <InputNumber
                         style={{ flex: 1 }}
                         step={0.5}
+                        precision={1}
                         placeholder="무게"
                         value={set.weight}
                         onChange={(v) => {

@@ -107,15 +107,20 @@ export default function StatsPage() {
     [progress, exercise, personalBests, exerciseProfile],
   )
 
-  const topPersonalBests = useMemo(() => {
-    return Object.entries(personalBests)
-      .filter(([, b]) => b.bestValue != null)
-      .sort((a, b) => {
-        if (a[1].better === 'lower') return a[1].bestValue - b[1].bestValue
-        return b[1].bestValue - a[1].bestValue
-      })
-      .slice(0, 8)
-  }, [personalBests])
+  const allPersonalBests = useMemo(() => {
+    const namesInOrder = []
+    if (settings) {
+      for (const routine of settings.routineOrder || []) {
+        for (const name of settings.exercises?.[routine] || []) {
+          if (!namesInOrder.includes(name)) namesInOrder.push(name)
+        }
+      }
+    }
+    for (const name of Object.keys(personalBests)) {
+      if (!namesInOrder.includes(name)) namesInOrder.push(name)
+    }
+    return namesInOrder.map((name) => [name, personalBests[name] || null])
+  }, [personalBests, settings])
 
   const inbodyChart = useMemo(() => {
     if (inbody.length === 0) return null
@@ -341,38 +346,45 @@ export default function StatsPage() {
         </Card>
 
         <Card title="🏆 기구별 최고 기록" style={{ marginBottom: 16 }}>
-          {topPersonalBests.length === 0 ? (
-            <Empty description="아직 기록이 없습니다" />
+          {allPersonalBests.length === 0 ? (
+            <Empty description="등록된 기구가 없습니다" />
           ) : (
             <Row gutter={[8, 8]}>
-              {topPersonalBests.map(([name, best]) => {
-                const profile = best.profile || getExerciseProfile(name, settings)
+              {allPersonalBests.map(([name, best]) => {
+                const profile = best?.profile || getExerciseProfile(name, settings)
                 const pbLabel = personalBestLabel(profile)
+                const hasRecord = best?.bestValue != null
                 return (
                   <Col xs={12} sm={8} key={name}>
                     <Card size="small" type="inner">
                       <Text strong>{name}</Text>
                       <div>
-                        <Text style={{ fontSize: 18, color: 'var(--primary)' }}>
-                          {formatExerciseValue(best.bestValue, profile)}
-                          {profile.unit === 'level' && (
-                            <Text type="secondary" style={{ fontSize: 14 }}>
-                              {' '}
-                              레벨
-                            </Text>
-                          )}
-                          {profile.unit === 'assist' && (
-                            <Text type="secondary" style={{ fontSize: 14 }}>
-                              {' '}
-                              보조
-                            </Text>
-                          )}
-                        </Text>
+                        {hasRecord ? (
+                          <Text style={{ fontSize: 18, color: 'var(--primary)' }}>
+                            {formatExerciseValue(best.bestValue, profile)}
+                            {profile.unit === 'level' && (
+                              <Text type="secondary" style={{ fontSize: 14 }}>
+                                {' '}
+                                레벨
+                              </Text>
+                            )}
+                            {profile.unit === 'assist' && (
+                              <Text type="secondary" style={{ fontSize: 14 }}>
+                                {' '}
+                                보조
+                              </Text>
+                            )}
+                          </Text>
+                        ) : (
+                          <Text type="secondary">기록 없음</Text>
+                        )}
                       </div>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        {pbLabel}
-                        {best.bestDate ? ` · ${displayDate(best.bestDate)}` : ''}
-                      </Text>
+                      {hasRecord && (
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {pbLabel}
+                          {best.bestDate ? ` · ${displayDate(best.bestDate)}` : ''}
+                        </Text>
+                      )}
                     </Card>
                   </Col>
                 )

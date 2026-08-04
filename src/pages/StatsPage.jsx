@@ -25,6 +25,7 @@ import {
   chartValueLabel,
   formatCardioSummary,
   formatExerciseValue,
+  formatPersonalBestValue,
   getExerciseProfile,
   isCardioProfile,
   personalBestLabel,
@@ -412,21 +413,30 @@ export default function StatsPage() {
                       <Text strong>{name}</Text>
                       <div>
                         {hasRecord ? (
-                          <Text style={{ fontSize: 18, color: 'var(--primary)' }}>
-                            {formatExerciseValue(best.bestValue, profile)}
-                            {profile.unit === 'level' && (
-                              <Text type="secondary" style={{ fontSize: 14 }}>
-                                {' '}
-                                레벨
-                              </Text>
+                          <>
+                            <Text style={{ fontSize: 18, color: 'var(--primary)' }}>
+                              {formatPersonalBestValue(best.bestValue, profile)}
+                              {profile.unit === 'level' && (
+                                <Text type="secondary" style={{ fontSize: 14 }}>
+                                  {' '}
+                                  레벨
+                                </Text>
+                              )}
+                              {profile.unit === 'assist' && (
+                                <Text type="secondary" style={{ fontSize: 14 }}>
+                                  {' '}
+                                  보조
+                                </Text>
+                              )}
+                            </Text>
+                            {profile.unit === 'cardio' && best.bestCardio && (
+                              <div>
+                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                  {formatCardioSummary(best.bestCardio, profile)}
+                                </Text>
+                              </div>
                             )}
-                            {profile.unit === 'assist' && (
-                              <Text type="secondary" style={{ fontSize: 14 }}>
-                                {' '}
-                                보조
-                              </Text>
-                            )}
-                          </Text>
+                          </>
                         ) : (
                           <Text type="secondary">기록 없음</Text>
                         )}

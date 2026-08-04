@@ -473,12 +473,22 @@ export function getPersonalBests(workouts, settings = null) {
 
   for (const workout of workouts) {
     for (const ex of workout.exercises || []) {
-      const m = getExerciseMetrics(ex)
-      if (!m?.maxWeight) continue
       const name = ex.name
       const profile = getExerciseProfile(name, settings)
       if (!tracksPersonalBest(profile)) continue
-      const value = m.maxWeight
+
+      let value = null
+      let bestCardio = null
+
+      if (isCardioProfile(profile) && ex.mode === 'cardio' && ex.cardio?.minutes != null) {
+        value = Number(ex.cardio.minutes)
+        if (!value || value <= 0) continue
+        bestCardio = ex.cardio
+      } else {
+        const m = getExerciseMetrics(ex)
+        if (!m?.maxWeight) continue
+        value = m.maxWeight
+      }
 
       if (!bests[name]) {
         bests[name] = {
@@ -489,6 +499,7 @@ export function getPersonalBests(workouts, settings = null) {
           bestDate: workout.date,
           sessions: 0,
           maxWeight: value,
+          bestCardio,
         }
       }
 
@@ -497,9 +508,13 @@ export function getPersonalBests(workouts, settings = null) {
         bests[name].bestValue = value
         bests[name].maxWeight = value
         bests[name].bestDate = workout.date
+        bests[name].bestCardio = bestCardio
       }
-      if (m.totalReps && m.totalReps > bests[name].maxTotalReps) {
-        bests[name].maxTotalReps = m.totalReps
+      if (!isCardioProfile(profile)) {
+        const m = getExerciseMetrics(ex)
+        if (m?.totalReps && m.totalReps > bests[name].maxTotalReps) {
+          bests[name].maxTotalReps = m.totalReps
+        }
       }
     }
   }

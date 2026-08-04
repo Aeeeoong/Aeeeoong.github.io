@@ -177,13 +177,20 @@ export function isPersonalBestValue(current, bestValue, profile) {
 }
 
 export function personalBestLabel(profile) {
-  if (profile?.unit === 'none' || profile?.unit === 'cardio') return ''
+  if (profile?.unit === 'none') return ''
+  if (profile?.unit === 'cardio') return '최장 시간'
   return profile.better === 'lower' ? '역대 최저' : '역대 최고'
 }
 
-/** 무게·레벨·보조 등 PR 추적 대상인지 */
+/** 기구별 최고 기록 카드 표시 대상 (복근 등 none 제외) */
 export function tracksPersonalBest(profile) {
-  return profile?.unit !== 'none' && profile?.unit !== 'cardio'
+  return profile?.unit !== 'none'
+}
+
+export function formatPersonalBestValue(value, profile) {
+  if (value == null || Number.isNaN(Number(value))) return '-'
+  if (isCardioProfile(profile)) return `${Number(value)}분`
+  return formatExerciseValue(value, profile)
 }
 
 export function usesIntegerValue(profile) {

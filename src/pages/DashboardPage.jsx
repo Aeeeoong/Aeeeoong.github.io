@@ -21,8 +21,8 @@ import { PageHeader } from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
 import { getLatestInbody, getInbodyRecords, getWorkouts } from '../services/storage'
 import {
-  calculateStreak,
   formatWeekRangeLabel,
+  getMotivationBanner,
   getWeeklySummary,
 } from '../lib/workoutInsights'
 import { displayDate, formatNumber } from '../lib/utils'
@@ -75,7 +75,7 @@ export default function DashboardPage() {
     return map
   }, [workouts])
 
-  const streak = useMemo(() => calculateStreak(workouts), [workouts])
+  const banner = useMemo(() => getMotivationBanner(workouts), [workouts])
   const weekly = useMemo(() => getWeeklySummary(workouts, inbodyRecords), [workouts, inbodyRecords])
 
   function dateCellRender(current) {
@@ -103,10 +103,8 @@ export default function DashboardPage() {
         ) : (
           <>
             <div className="dashboard-streak-banner">
-              <div className="dashboard-streak-main">{streak.message}</div>
-              {streak.longest > 1 && (
-                <div className="dashboard-streak-sub">최장 {streak.longest}일 연속</div>
-              )}
+              <div className="dashboard-streak-main">{banner.main}</div>
+              {banner.sub && <div className="dashboard-streak-sub">{banner.sub}</div>}
             </div>
 
             <Card size="small" className="summary-card" style={{ marginBottom: 16 }}>

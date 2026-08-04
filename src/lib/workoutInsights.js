@@ -157,6 +157,135 @@ export function calculateStreak(workouts) {
   return { current, longest, message }
 }
 
+/** 주 3회 루틴 기준 (3분할) */
+const WEEKLY_GOAL = 3
+
+function pickDaily(messages, salt = '') {
+  const today = formatDate(new Date())
+  const hash = [...`${today}${salt}`].reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
+  return messages[hash % messages.length]
+}
+
+function daysBetween(fromDate, toDate) {
+  const a = new Date(`${fromDate}T12:00:00`)
+  const b = new Date(`${toDate}T12:00:00`)
+  return Math.round((b - a) / (1000 * 60 * 60 * 24))
+}
+
+/** 홈 배너 — 상황별·날마다 바뀌는 동기부여 문구 */
+export function getMotivationBanner(workouts) {
+  const streak = calculateStreak(workouts)
+  const today = formatDate(new Date())
+  const weekStart = getMondayOfWeek(new Date())
+  const weekEnd = addDays(weekStart, 6)
+  const thisWeek = workouts.filter((w) => w.date >= weekStart && w.date <= weekEnd)
+  const weekCount = thisWeek.length
+  const workedOutToday = workouts.some((w) => w.date === today)
+  const lastWorkout = workouts[0]
+  const daysSinceLast = lastWorkout ? daysBetween(lastWorkout.date, today) : null
+  const weekProgress = `이번 주 ${weekCount}/${WEEKLY_GOAL}회`
+
+  if (workouts.length === 0) {
+    return {
+      main: pickDaily([
+        '첫 운동, 기록부터 시작해요 💪',
+        '오늘 한 번이 시작이에요',
+        '작은 기록이 큰 변화를 만들어요',
+      ]),
+      sub: '기록하면 동기부여가 쌓여요',
+    }
+  }
+
+  if (workedOutToday && weekCount >= WEEKLY_GOAL) {
+    return {
+      main: pickDaily([
+        '이번 주 목표 달성! 🎉',
+        '완벽한 한 주예요, 정말 잘했어요',
+        '3회 채웠어요 — 이번 주 MVP',
+      ], 'goal'),
+      sub: `${weekCount}번째 운동까지 마쳤어요`,
+    }
+  }
+
+  if (workedOutToday) {
+    return {
+      main: pickDaily([
+        '오늘도 수고했어요 👏',
+        '한 번 더, 조금 더 강해졌어요',
+        '기록 완료! 회복도 잘하세요',
+        '오운완! 내일은 쉬어도 OK',
+      ], 'done'),
+      sub: weekCount < WEEKLY_GOAL ? `${weekProgress} · ${WEEKLY_GOAL - weekCount}번 남음` : weekProgress,
+    }
+  }
+
+  if (daysSinceLast != null && daysSinceLast >= 5) {
+    return {
+      main: pickDaily([
+        '다시 시작하기 딱 좋은 날이에요',
+        '오랜만이에요! 가볍게부터 OK',
+        '돌아온 걸 환영해요 💪',
+      ], 'return'),
+      sub: `${daysSinceLast}일 만의 기록을 기다리고 있어요`,
+    }
+  }
+
+  if (weekCount === 0) {
+    return {
+      main: pickDaily([
+        '이번 주 첫 운동, 화이팅!',
+        '새로운 한 주, 새로운 시작',
+        '월요일 기분? 아니어도 OK, 오늘이 시작',
+      ], 'week0'),
+      sub: '꾸준함이 제일 큰 무기예요',
+    }
+  }
+
+  if (weekCount === 1) {
+    return {
+      main: pickDaily([
+        '좋은 출발! 한 번 더 가볼까요?',
+        '1회 완료 — 분위기 탔어요',
+        '첫 루틴 끝! 다음도 기대돼요',
+      ], 'week1'),
+      sub: `${weekProgress} · ${WEEKLY_GOAL - weekCount}번 더 하면 목표 달성`,
+    }
+  }
+
+  if (weekCount === 2) {
+    return {
+      main: pickDaily([
+        '거의 다 왔어요! 한 번만 더',
+        '2/3 — 마지막 한 방 남았어요',
+        '이번 주 마무리가 코앞이에요',
+      ], 'week2'),
+      sub: `${weekProgress} · 한 번 더 하면 이번 주 완료`,
+    }
+  }
+
+  if (weekCount >= WEEKLY_GOAL) {
+    return {
+      main: pickDaily([
+        '이번 주도 잘하고 있어요',
+        '목표 달성! 쉬는 것도 훈련이에요',
+        '3회 채웠으니 오늘은 편히 쉬세요',
+      ], 'rest-goal'),
+      sub: '근육은 쉴 때 자라요 😴',
+    }
+  }
+
+  return {
+    main: pickDaily([
+      '쉬는 날도 성장의 일부예요',
+      '회복도 운동의 한 몫이에요',
+      '다음 루틴까지 충분히 쉬세요',
+      '오늘은 몸 챙기는 날',
+      '3분할? 쉬는 날이 있어야 해요',
+    ], 'rest'),
+    sub: streak.current >= 2 ? `🔥 ${streak.current}일 연속 기록 · ${weekProgress}` : weekProgress,
+  }
+}
+
 /** 뉴비 친화 주간 요약 */
 export function getWeeklySummary(workouts, inbodyRecords = []) {
   const weekStart = getMondayOfWeek(new Date())

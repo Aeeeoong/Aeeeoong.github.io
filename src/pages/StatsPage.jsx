@@ -27,6 +27,7 @@ import {
   getExerciseProfile,
   personalBestLabel,
   statisticValueSuffix,
+  tracksPersonalBest,
   usesIntegerValue,
 } from '../lib/exerciseConfig'
 import {
@@ -119,7 +120,9 @@ export default function StatsPage() {
     for (const name of Object.keys(personalBests)) {
       if (!namesInOrder.includes(name)) namesInOrder.push(name)
     }
-    return namesInOrder.map((name) => [name, personalBests[name] || null])
+    return namesInOrder
+      .filter((name) => tracksPersonalBest(getExerciseProfile(name, settings)))
+      .map((name) => [name, personalBests[name] || null])
   }, [personalBests, settings])
 
   const inbodyChart = useMemo(() => {

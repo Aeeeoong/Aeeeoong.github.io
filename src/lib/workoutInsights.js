@@ -5,6 +5,7 @@ import {
   improvementDelta,
   isPersonalBestValue,
   personalBestLabel,
+  tracksPersonalBest,
   usesIntegerValue,
   valueUnitForCompare,
 } from './exerciseConfig'
@@ -471,6 +472,7 @@ export function getPersonalBests(workouts, settings = null) {
       if (!m?.maxWeight) continue
       const name = ex.name
       const profile = getExerciseProfile(name, settings)
+      if (!tracksPersonalBest(profile)) continue
       const value = m.maxWeight
 
       if (!bests[name]) {

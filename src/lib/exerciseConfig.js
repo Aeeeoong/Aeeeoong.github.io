@@ -1,4 +1,4 @@
-/** @typedef {'kg' | 'level' | 'assist'} ExerciseUnit */
+/** @typedef {'kg' | 'level' | 'assist' | 'none'} ExerciseUnit */
 /** @typedef {'higher' | 'lower'} ExerciseBetter */
 
 /** 사용 중인 기구 기준 — 특이 케이스만 등록, 나머지는 kg */
@@ -40,6 +40,13 @@ export const DEFAULT_EXERCISE_PROFILES = {
     precision: 0,
     min: 0,
     max: 90,
+  },
+  '복근': {
+    unit: 'none',
+    better: 'higher',
+    useE1RM: false,
+    inputLabel: '회',
+    suffix: '',
   },
 }
 
@@ -92,7 +99,13 @@ export function isPersonalBestValue(current, bestValue, profile) {
 }
 
 export function personalBestLabel(profile) {
+  if (profile?.unit === 'none') return ''
   return profile.better === 'lower' ? '역대 최저' : '역대 최고'
+}
+
+/** 무게·레벨·보조 등 PR 추적 대상인지 */
+export function tracksPersonalBest(profile) {
+  return profile?.unit !== 'none'
 }
 
 export function usesIntegerValue(profile) {

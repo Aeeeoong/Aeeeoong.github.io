@@ -21,6 +21,15 @@ export const DEFAULT_EXERCISE_PROFILES = {
     step: 1,
     precision: 0,
   },
+  'MTS rows': {
+    unit: 'level',
+    better: 'higher',
+    useE1RM: false,
+    inputLabel: '레벨',
+    suffix: '',
+    step: 1,
+    precision: 0,
+  },
   '어시스트 풀업': {
     unit: 'assist',
     better: 'lower',

@@ -22,6 +22,11 @@ import {
   getWorkouts,
 } from '../services/storage'
 import {
+  formatExerciseValue,
+  getExerciseProfile,
+  personalBestLabel,
+} from '../lib/exerciseConfig'
+import {
   getExerciseSummary,
   getPersonalBests,
   getWorkoutDateSet,
@@ -89,16 +94,23 @@ export default function StatsPage() {
   )
 
   const workoutDates = useMemo(() => getWorkoutDateSet(workouts), [workouts])
-  const personalBests = useMemo(() => getPersonalBests(workouts), [workouts])
+  const personalBests = useMemo(() => getPersonalBests(workouts, settings), [workouts, settings])
+  const exerciseProfile = useMemo(
+    () => (exercise && settings ? getExerciseProfile(exercise, settings) : null),
+    [exercise, settings],
+  )
   const exerciseSummary = useMemo(
-    () => getExerciseSummary(progress, exercise, personalBests),
-    [progress, exercise, personalBests],
+    () => getExerciseSummary(progress, exercise, personalBests, exerciseProfile),
+    [progress, exercise, personalBests, exerciseProfile],
   )
 
   const topPersonalBests = useMemo(() => {
     return Object.entries(personalBests)
-      .filter(([, b]) => b.maxWeight > 0)
-      .sort((a, b) => b[1].maxWeight - a[1].maxWeight)
+      .filter(([, b]) => b.bestValue != null)
+      .sort((a, b) => {
+        if (a[1].better === 'lower') return a[1].bestValue - b[1].bestValue
+        return b[1].bestValue - a[1].bestValue
+      })
       .slice(0, 8)
   }, [personalBests])
 
@@ -270,9 +282,13 @@ export default function StatsPage() {
             <Row gutter={[12, 16]} style={{ marginBottom: 16 }}>
               <Col xs={8}>
                 <Statistic
-                  title="역대 최고"
-                  value={formatNumber(exerciseSummary.allTimeBest)}
-                  suffix="kg"
+                  title={exerciseSummary.pbLabel || '역대 최고'}
+                  value={
+                    exerciseProfile?.unit === 'level'
+                      ? exerciseSummary.allTimeBest
+                      : formatNumber(exerciseSummary.allTimeBest)
+                  }
+                  suffix={exerciseProfile?.unit === 'level' ? '레벨' : exerciseProfile?.suffix || 'kg'}
                 />
               </Col>
               <Col xs={8}>
@@ -295,28 +311,30 @@ export default function StatsPage() {
           </div>
         </Card>
 
-        <Card title="🏆 역대 최고 기록" style={{ marginBottom: 16 }}>
+        <Card title="🏆 기구별 최고 기록" style={{ marginBottom: 16 }}>
           {topPersonalBests.length === 0 ? (
             <Empty description="아직 기록이 없습니다" />
           ) : (
             <Row gutter={[8, 8]}>
-              {topPersonalBests.map(([name, best]) => (
-                <Col xs={12} sm={8} key={name}>
-                  <Card size="small" type="inner">
-                    <Text strong>{name}</Text>
-                    <div>
-                      <Text style={{ fontSize: 18, color: 'var(--primary)' }}>
-                        {formatNumber(best.maxWeight)}kg
-                      </Text>
-                    </div>
-                    {best.maxWeightDate && (
+              {topPersonalBests.map(([name, best]) => {
+                const profile = best.profile || getExerciseProfile(name, settings)
+                return (
+                  <Col xs={12} sm={8} key={name}>
+                    <Card size="small" type="inner">
+                      <Text strong>{name}</Text>
+                      <div>
+                        <Text style={{ fontSize: 18, color: 'var(--primary)' }}>
+                          {formatExerciseValue(best.bestValue, profile)}
+                        </Text>
+                      </div>
                       <Text type="secondary" style={{ fontSize: 12 }}>
-                        {displayDate(best.maxWeightDate)}
+                        {personalBestLabel(profile)}
+                        {best.bestDate ? ` · ${displayDate(best.bestDate)}` : ''}
                       </Text>
-                    )}
-                  </Card>
-                </Col>
-              ))}
+                    </Card>
+                  </Col>
+                )
+              })}
             </Row>
           )}
         </Card>

@@ -1,4 +1,12 @@
 import { formatDate } from './utils'
+import {
+  formatExerciseValue,
+  getExerciseProfile,
+  improvementDelta,
+  isPersonalBestValue,
+  personalBestLabel,
+  valueUnitForCompare,
+} from './exerciseConfig'
 
 /** 저장/폼 공통 — 운동 하나에서 비교용 지표 추출 */
 export function getExerciseMetrics(exercise) {
@@ -47,7 +55,8 @@ export function estimateOneRepMax(weight, reps) {
   return w * (1 + r / 30)
 }
 
-export function getExerciseEstimated1RM(exercise) {
+export function getExerciseEstimated1RM(exercise, profile) {
+  if (profile && !profile.useE1RM) return null
   const m = getExerciseMetrics(exercise)
   if (!m?.maxWeight || !m.reps) return null
   return estimateOneRepMax(m.maxWeight, m.reps)
@@ -72,31 +81,47 @@ export function getCompletionRate(exercises) {
   }
 }
 
-function formatDelta(diff, unit, decimals = 0) {
-  if (diff === 0) return { text: '변화 없음', tone: 'neutral' }
-  const sign = diff > 0 ? '+' : ''
-  const value = decimals > 0 ? diff.toFixed(decimals) : String(diff)
-  return {
-    text: `${sign}${value}${unit}`,
-    tone: diff > 0 ? 'up' : 'down',
+function formatImprovement(improvement, unit, decimals = 1) {
+  if (improvement === 0) return { text: '변화 없음', tone: 'neutral' }
+  if (improvement > 0) {
+    const value = decimals > 0 ? improvement.toFixed(decimals) : String(improvement)
+    return { text: `+${value}${unit}`, tone: 'up' }
   }
+  const value = decimals > 0 ? Math.abs(improvement).toFixed(decimals) : String(Math.abs(improvement))
+  return { text: `-${value}${unit}`, tone: 'down' }
 }
 
 /** 현재 입력 vs 지난 기록 비교 */
-export function compareWithPrevious(currentExercise, previousExercise) {
+export function compareWithPrevious(currentExercise, previousExercise, profile) {
   const cur = getExerciseMetrics(currentExercise)
   const prev = getExerciseMetrics(previousExercise)
-  if (!cur || !prev) return null
+  if (!cur || !prev || !profile) return null
 
+  const unit = valueUnitForCompare(profile)
+  const valueDecimals = profile.unit === 'level' ? 0 : 1
   const parts = []
+
   if (cur.maxWeight != null && prev.maxWeight != null) {
-    parts.push({ key: 'weight', label: '무게', ...formatDelta(cur.maxWeight - prev.maxWeight, 'kg', 1) })
+    const imp = improvementDelta(cur.maxWeight, prev.maxWeight, profile)
+    parts.push({
+      key: 'weight',
+      label: profile.inputLabel,
+      ...formatImprovement(imp, unit, valueDecimals),
+    })
   }
   if (cur.reps != null && prev.reps != null) {
-    parts.push({ key: 'reps', label: '회', ...formatDelta(cur.reps - prev.reps, '회') })
+    parts.push({
+      key: 'reps',
+      label: '회',
+      ...formatImprovement(cur.reps - prev.reps, '회', 0),
+    })
   }
   if (cur.sets != null && prev.sets != null) {
-    parts.push({ key: 'sets', label: '세트', ...formatDelta(cur.sets - prev.sets, '세트') })
+    parts.push({
+      key: 'sets',
+      label: '세트',
+      ...formatImprovement(cur.sets - prev.sets, '세트', 0),
+    })
   }
   return parts.length ? parts : null
 }
@@ -302,7 +327,7 @@ export function getMotivationBanner(workouts) {
 }
 
 /** 뉴비 친화 주간 요약 */
-export function getWeeklySummary(workouts, inbodyRecords = []) {
+export function getWeeklySummary(workouts, inbodyRecords = [], settings = null) {
   const weekStart = getMondayOfWeek(new Date())
   const weekEnd = addDays(weekStart, 6)
   const lastWeekStart = addDays(weekStart, -7)
@@ -333,8 +358,8 @@ export function getWeeklySummary(workouts, inbodyRecords = []) {
     busiestLine = `가장 알차게 한 날: ${d.getMonth() + 1}/${d.getDate()} · ${best.type}`
   }
 
-  const improvement = findWeeklyImprovement(thisWeek, lastWeek)
-  const bestLift = findWeeklyBestLift(thisWeek)
+  const improvement = findWeeklyImprovement(thisWeek, lastWeek, settings)
+  const bestLift = findWeeklyBestLift(thisWeek, settings)
 
   const lines = [countMessage]
   if (busiestLine) lines.push(busiestLine)
@@ -356,62 +381,68 @@ export function getWeeklySummary(workouts, inbodyRecords = []) {
   }
 }
 
-function findWeeklyImprovement(thisWeek, lastWeek) {
-  const thisBest = {}
-  const lastBest = {}
-
-  for (const w of thisWeek) {
+function aggregateWeekValues(workouts, settings) {
+  const map = {}
+  for (const w of workouts) {
     for (const ex of w.exercises || []) {
       const m = getExerciseMetrics(ex)
-      if (!m?.maxWeight) continue
-      if (!thisBest[ex.name] || m.maxWeight > thisBest[ex.name]) {
-        thisBest[ex.name] = m.maxWeight
+      if (m?.maxWeight == null) continue
+      const profile = getExerciseProfile(ex.name, settings)
+      const val = m.maxWeight
+      if (map[ex.name] == null) {
+        map[ex.name] = { value: val, profile }
+      } else if (profile.better === 'lower') {
+        map[ex.name].value = Math.min(map[ex.name].value, val)
+      } else {
+        map[ex.name].value = Math.max(map[ex.name].value, val)
       }
     }
   }
+  return map
+}
 
-  for (const w of lastWeek) {
-    for (const ex of w.exercises || []) {
-      const m = getExerciseMetrics(ex)
-      if (!m?.maxWeight) continue
-      if (!lastBest[ex.name] || m.maxWeight > lastBest[ex.name]) {
-        lastBest[ex.name] = m.maxWeight
-      }
-    }
-  }
+function findWeeklyImprovement(thisWeek, lastWeek, settings) {
+  const thisBest = aggregateWeekValues(thisWeek, settings)
+  const lastBest = aggregateWeekValues(lastWeek, settings)
 
   let bestName = null
   let bestDiff = 0
-  for (const [name, weight] of Object.entries(thisBest)) {
-    const prev = lastBest[name]
+  let bestLine = null
+
+  for (const [name, { value, profile }] of Object.entries(thisBest)) {
+    const prev = lastBest[name]?.value
     if (prev == null) continue
-    const diff = weight - prev
-    if (diff > bestDiff) {
-      bestDiff = diff
-      bestName = name
-    }
+    const diff = improvementDelta(value, prev, profile)
+    if (diff == null || diff <= 0 || diff <= bestDiff) continue
+    bestDiff = diff
+    bestName = name
+    const unit = valueUnitForCompare(profile)
+    const fmt = (v) => formatExerciseValue(v, profile)
+    bestLine = `${name}: ${fmt(prev)} → ${fmt(value)} (+${profile.unit === 'level' ? diff : diff.toFixed(1) + unit})`
   }
 
-  if (bestName && bestDiff > 0) {
-    return `${bestName}: ${lastBest[bestName]}kg → ${thisBest[bestName]}kg (+${bestDiff.toFixed(1)}kg)`
-  }
+  if (bestLine) return bestLine
 
   const firstNew = Object.keys(thisBest).find((name) => lastBest[name] == null)
   if (firstNew) {
-    return `${firstNew} 이번 주 ${thisBest[firstNew]}kg — 지난주 기록 없음`
+    const { value, profile } = thisBest[firstNew]
+    return `${firstNew} 이번 주 ${formatExerciseValue(value, profile)} — 지난주 기록 없음`
   }
 
   return null
 }
 
-/** 이번 주 예상 1회 최고 (요약 전용, 1RM 용어 노출 안 함) */
-function findWeeklyBestLift(thisWeek) {
+/** 이번 주 예상 1회 최고 — kg 기구만 */
+function findWeeklyBestLift(thisWeek, settings) {
   let best = null
 
   for (const workout of thisWeek) {
     for (const ex of workout.exercises || []) {
+      const profile = getExerciseProfile(ex.name, settings)
+      if (!profile.useE1RM) continue
+
       const m = getExerciseMetrics(ex)
-      const e1rm = getExerciseEstimated1RM(ex)
+      const e1rm = getExerciseEstimated1RM(ex, profile)
       if (!e1rm || !m?.maxWeight || !m.reps) continue
 
       if (!best || e1rm > best.e1rm) {
@@ -429,27 +460,35 @@ function findWeeklyBestLift(thisWeek) {
   return `💪 이번 주 베스트: ${best.name} — 예상 1회 ${best.e1rm.toFixed(1)}kg (${best.weight}kg×${best.reps}회)`
 }
 
-/** 운동별 역대 최고 */
-export function getPersonalBests(workouts) {
+/** 운동별 역대 최고/최저 */
+export function getPersonalBests(workouts, settings = null) {
   const bests = {}
 
   for (const workout of workouts) {
     for (const ex of workout.exercises || []) {
       const m = getExerciseMetrics(ex)
-      if (!m) continue
+      if (!m?.maxWeight) continue
       const name = ex.name
+      const profile = getExerciseProfile(name, settings)
+      const value = m.maxWeight
+
       if (!bests[name]) {
         bests[name] = {
-          maxWeight: 0,
+          bestValue: value,
+          better: profile.better,
+          profile,
           maxTotalReps: 0,
-          maxWeightDate: null,
+          bestDate: workout.date,
           sessions: 0,
+          maxWeight: value,
         }
       }
+
       bests[name].sessions++
-      if (m.maxWeight && m.maxWeight > bests[name].maxWeight) {
-        bests[name].maxWeight = m.maxWeight
-        bests[name].maxWeightDate = workout.date
+      if (isPersonalBestValue(value, bests[name].bestValue, profile)) {
+        bests[name].bestValue = value
+        bests[name].maxWeight = value
+        bests[name].bestDate = workout.date
       }
       if (m.totalReps && m.totalReps > bests[name].maxTotalReps) {
         bests[name].maxTotalReps = m.totalReps
@@ -460,47 +499,56 @@ export function getPersonalBests(workouts) {
   return bests
 }
 
-export function checkPersonalBest(exerciseName, currentExercise, bests) {
+export function checkPersonalBest(exerciseName, currentExercise, bests, profile) {
   const cur = getExerciseMetrics(currentExercise)
-  if (!cur?.maxWeight) return null
+  if (!cur?.maxWeight || !profile) return null
 
   const best = bests[exerciseName]
-  if (!best || cur.maxWeight <= best.maxWeight) return null
+  if (!best?.bestValue || !isPersonalBestValue(cur.maxWeight, best.bestValue, profile)) return null
 
+  const diff = Math.abs(cur.maxWeight - best.bestValue)
   return {
-    previous: best.maxWeight,
+    previous: best.bestValue,
     current: cur.maxWeight,
-    diff: cur.maxWeight - best.maxWeight,
+    diff,
+    profile,
   }
 }
 
-/** 현재 입력 vs 역대 최고 */
-export function compareWithPersonalBest(currentExercise, bestEntry) {
+/** 현재 입력 vs 역대 최고/최저 */
+export function compareWithPersonalBest(currentExercise, bestEntry, profile) {
   const cur = getExerciseMetrics(currentExercise)
-  if (!cur?.maxWeight || !bestEntry?.maxWeight) return null
+  if (!cur?.maxWeight || !bestEntry?.bestValue || !profile) return null
 
-  const diff = cur.maxWeight - bestEntry.maxWeight
-  if (diff > 0) {
+  const bestVal = bestEntry.bestValue
+  const imp = improvementDelta(cur.maxWeight, bestVal, profile)
+  const fmt = (v) => formatExerciseValue(v, profile)
+  const pbLabel = personalBestLabel(profile)
+
+  if (imp != null && imp > 0) {
+    const unit = valueUnitForCompare(profile)
     return {
       status: 'beat',
-      best: bestEntry.maxWeight,
-      diff,
-      label: `역대 ${bestEntry.maxWeight}kg → ${cur.maxWeight}kg (+${diff.toFixed(1)}kg)`,
+      best: bestVal,
+      diff: imp,
+      label: `${pbLabel} ${fmt(bestVal)} → ${fmt(cur.maxWeight)} (+${profile.unit === 'level' ? imp : imp.toFixed(1) + unit})`,
     }
   }
-  if (Math.abs(diff) < 0.05) {
+  if (imp === 0) {
     return {
       status: 'tie',
-      best: bestEntry.maxWeight,
-      label: `${bestEntry.maxWeight}kg · 역대 최고와 동일`,
+      best: bestVal,
+      label: `${fmt(bestVal)} · ${pbLabel}와 동일`,
     }
   }
-  const remaining = bestEntry.maxWeight - cur.maxWeight
+
+  const remaining = profile.better === 'lower' ? cur.maxWeight - bestVal : bestVal - cur.maxWeight
+  const unit = valueUnitForCompare(profile)
   return {
     status: 'below',
-    best: bestEntry.maxWeight,
+    best: bestVal,
     remaining,
-    label: `${bestEntry.maxWeight}kg · ${remaining.toFixed(1)}kg 남음`,
+    label: `${pbLabel} ${fmt(bestVal)} · ${profile.better === 'lower' ? `${remaining.toFixed(1)}${unit} 더 줄이면 갱신` : `${remaining.toFixed(1)}${unit} 남음`}`,
   }
 }
 
@@ -509,7 +557,7 @@ export function getWorkoutDateSet(workouts) {
 }
 
 /** 통계용 — 선택 운동 요약 (뉴비 친화) */
-export function getExerciseSummary(progress, exerciseName, bests) {
+export function getExerciseSummary(progress, exerciseName, bests, profile) {
   if (!progress.length) return null
 
   const weights = progress.map((p) => p.weight).filter((w) => w != null && w > 0)
@@ -523,13 +571,16 @@ export function getExerciseSummary(progress, exerciseName, bests) {
   }, 0)
 
   const best = bests[exerciseName]
+  const pbLabel = profile ? personalBestLabel(profile) : '역대 최고'
 
   return {
     maxWeight,
     totalSessions,
     totalReps,
-    allTimeBest: best?.maxWeight || maxWeight,
-    bestDate: best?.maxWeightDate,
+    allTimeBest: best?.bestValue ?? maxWeight,
+    bestDate: best?.bestDate,
+    pbLabel,
+    profile,
   }
 }
 

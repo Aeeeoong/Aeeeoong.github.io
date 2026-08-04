@@ -28,6 +28,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { addWorkout, getSettings, getWorkouts } from '../services/storage'
 import { emptyExercise, exerciseFromSaved, serializeExercises } from '../lib/workoutForm'
+import { getExerciseProfile } from '../lib/exerciseConfig'
 import {
   checkPersonalBest,
   findPreviousExercise,
@@ -48,15 +49,18 @@ import { getTodayString } from '../lib/utils'
 
 const { Text } = Typography
 
-function SimpleExerciseInputs({ ex, ph, index, updateExercise }) {
+function SimpleExerciseInputs({ ex, ph, index, updateExercise, profile }) {
+  const isLevel = profile?.unit === 'level'
   return (
     <div className="simple-exercise-inputs">
-      <Form.Item label="무게" className="field-weight" style={{ marginBottom: 8 }}>
+      <Form.Item label={profile?.inputLabel || '무게'} className="field-weight" style={{ marginBottom: 8 }}>
         <InputNumber
           style={{ width: '100%' }}
-          step={0.5}
-          precision={1}
-          placeholder={ph.weight != null ? String(ph.weight) : '0.0'}
+          step={isLevel ? 1 : 0.5}
+          precision={isLevel ? 0 : 1}
+          placeholder={
+            ph.weight != null ? String(ph.weight) : isLevel ? '0' : '0.0'
+          }
           value={ex.weight}
           onChange={(v) => updateExercise(index, { weight: v })}
         />
@@ -408,7 +412,7 @@ export default function RecordPage() {
     })
   }
 
-  const personalBests = getPersonalBests(allWorkouts)
+  const personalBests = getPersonalBests(allWorkouts, settings)
   const completion = getCompletionRate(exercises)
   const lastWorkoutForType = getLastWorkoutByType(allWorkouts, type)
 
@@ -498,8 +502,10 @@ export default function RecordPage() {
             {exercises.map((ex, index) => {
               const ph = placeholders[ex.name] || {}
               const prev = findPreviousExercise(allWorkouts, type, ex.name)
-              const pr = checkPersonalBest(ex.name, ex, personalBests)
+              const profile = getExerciseProfile(ex.name, settings)
+              const pr = checkPersonalBest(ex.name, ex, personalBests, profile)
               const filled = isExerciseFilled(ex)
+              const bestEntry = personalBests[ex.name]
               const cardClass = [
                 'exercise-card-draggable',
                 dragIndex === index ? 'dragging' : '',
@@ -564,14 +570,20 @@ export default function RecordPage() {
                         ph={ph}
                         index={index}
                         updateExercise={updateExercise}
+                        profile={profile}
                       />
                       {prev && (
-                        <ExerciseCompareHint current={ex} previous={prev.exercise} />
+                        <ExerciseCompareHint
+                          current={ex}
+                          previous={prev.exercise}
+                          profile={profile}
+                        />
                       )}
-                      {personalBests[ex.name]?.maxWeight > 0 && (
+                      {bestEntry?.bestValue != null && (
                         <PersonalBestCompareHint
                           current={ex}
-                          bestEntry={personalBests[ex.name]}
+                          bestEntry={bestEntry}
+                          profile={profile}
                         />
                       )}
                     </>
@@ -591,9 +603,9 @@ export default function RecordPage() {
                             <Text style={{ width: 48 }}>{si + 1}세트</Text>
                             <InputNumber
                               style={{ flex: 1 }}
-                              step={0.5}
-                              precision={1}
-                              placeholder="무게"
+                              step={profile.unit === 'level' ? 1 : 0.5}
+                              precision={profile.unit === 'level' ? 0 : 1}
+                              placeholder={profile.inputLabel}
                               value={set.weight}
                               onChange={(v) => {
                                 const next = [...ex.setsDetail]
@@ -629,12 +641,17 @@ export default function RecordPage() {
                         ))}
                       </Space>
                       {prev && (
-                        <ExerciseCompareHint current={ex} previous={prev.exercise} />
+                        <ExerciseCompareHint
+                          current={ex}
+                          previous={prev.exercise}
+                          profile={profile}
+                        />
                       )}
-                      {personalBests[ex.name]?.maxWeight > 0 && (
+                      {bestEntry?.bestValue != null && (
                         <PersonalBestCompareHint
                           current={ex}
-                          bestEntry={personalBests[ex.name]}
+                          bestEntry={bestEntry}
+                          profile={profile}
                         />
                       )}
                     </>

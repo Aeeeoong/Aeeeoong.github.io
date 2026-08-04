@@ -1,6 +1,7 @@
 export function getDefaultSettings() {
   return {
     routineOrder: ['하체', '등', '가슴어깨'],
+    exerciseProfiles: {},
     exercises: {
       하체: [
         '브이스쿼트',

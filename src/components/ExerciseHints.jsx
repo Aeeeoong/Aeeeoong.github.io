@@ -1,10 +1,11 @@
 import { Tag, Typography } from 'antd'
+import { personalBestLabel } from '../lib/exerciseConfig'
 import { compareWithPersonalBest, compareWithPrevious } from '../lib/workoutInsights'
 
 const { Text } = Typography
 
-export function ExerciseCompareHint({ current, previous }) {
-  const parts = compareWithPrevious(current, previous)
+export function ExerciseCompareHint({ current, previous, profile }) {
+  const parts = compareWithPrevious(current, previous, profile)
   if (!parts?.length) return null
 
   return (
@@ -25,8 +26,8 @@ export function ExerciseCompareHint({ current, previous }) {
   )
 }
 
-export function PersonalBestCompareHint({ current, bestEntry }) {
-  const hint = compareWithPersonalBest(current, bestEntry)
+export function PersonalBestCompareHint({ current, bestEntry, profile }) {
+  const hint = compareWithPersonalBest(current, bestEntry, profile)
   if (!hint) return null
 
   const color =
@@ -35,7 +36,7 @@ export function PersonalBestCompareHint({ current, bestEntry }) {
   return (
     <div className="exercise-compare-hint">
       <Text type="secondary" style={{ fontSize: 12 }}>
-        역대 최고{' '}
+        {personalBestLabel(profile)}{' '}
       </Text>
       <Tag color={color} style={{ marginInlineEnd: 4 }}>
         {hint.status === 'beat' ? `🏆 ${hint.label}` : hint.label}
@@ -46,9 +47,12 @@ export function PersonalBestCompareHint({ current, bestEntry }) {
 
 export function PersonalBestBadge({ pr }) {
   if (!pr) return null
+  const label = pr.profile ? personalBestLabel(pr.profile) : '역대 최고'
+  const unit = pr.profile?.unit === 'level' ? '' : 'kg'
+  const diffStr = pr.profile?.unit === 'level' ? String(pr.diff) : pr.diff.toFixed(1) + unit
   return (
     <Tag color="gold" style={{ marginInlineStart: 4 }}>
-      🏆 역대 최고! +{pr.diff.toFixed(1)}kg
+      🏆 {label}! +{diffStr}
     </Tag>
   )
 }

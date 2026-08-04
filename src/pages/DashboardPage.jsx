@@ -19,7 +19,7 @@ import {
 import { LeftOutlined, RightOutlined } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
-import { getLatestInbody, getInbodyRecords, getWorkouts } from '../services/storage'
+import { getLatestInbody, getInbodyRecords, getSettings, getWorkouts } from '../services/storage'
 import {
   formatWeekRangeLabel,
   getMotivationBanner,
@@ -38,21 +38,24 @@ export default function DashboardPage() {
   const [recent, setRecent] = useState([])
   const [workouts, setWorkouts] = useState([])
   const [inbodyRecords, setInbodyRecords] = useState([])
+  const [settings, setSettings] = useState(null)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       setLoading(true)
       try {
-        const [inbody, all, records] = await Promise.all([
+        const [inbody, all, records, s] = await Promise.all([
           getLatestInbody(user),
           getWorkouts(user),
           getInbodyRecords(user, 20),
+          getSettings(user),
         ])
         if (cancelled) return
         setLatestInbody(inbody)
         setWorkouts(all)
         setInbodyRecords(records)
+        setSettings(s)
         setRecent(all.slice(0, 5))
       } catch (err) {
         modal.error({ title: '데이터 로드 실패', content: err.message })
@@ -76,7 +79,10 @@ export default function DashboardPage() {
   }, [workouts])
 
   const banner = useMemo(() => getMotivationBanner(workouts), [workouts])
-  const weekly = useMemo(() => getWeeklySummary(workouts, inbodyRecords), [workouts, inbodyRecords])
+  const weekly = useMemo(
+    () => getWeeklySummary(workouts, inbodyRecords, settings),
+    [workouts, inbodyRecords, settings],
+  )
 
   function dateCellRender(current) {
     const key = current.format('YYYY-MM-DD')

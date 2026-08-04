@@ -31,6 +31,28 @@ export function getDefaultSettings() {
   }
 }
 
+/** 저장된 설정에 기본값의 새 루틴·기구 목록을 병합 */
+export function mergeSettingsWithDefaults(saved = {}) {
+  const defaults = getDefaultSettings()
+  const routineOrder = [...(saved.routineOrder || defaults.routineOrder)]
+  for (const routine of defaults.routineOrder) {
+    if (!routineOrder.includes(routine)) {
+      routineOrder.push(routine)
+    }
+  }
+
+  const exercises = { ...defaults.exercises }
+  for (const [routine, list] of Object.entries(saved.exercises || {})) {
+    exercises[routine] = list
+  }
+
+  return {
+    exerciseProfiles: { ...defaults.exerciseProfiles, ...(saved.exerciseProfiles || {}) },
+    routineOrder,
+    exercises,
+  }
+}
+
 export function getDefaultData() {
   return {
     workouts: [],

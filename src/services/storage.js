@@ -11,7 +11,7 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import { db, ensureAnonymousAuth } from '../lib/firebase'
-import { getDefaultData, getDefaultSettings } from '../lib/defaults'
+import { getDefaultData, getDefaultSettings, mergeSettingsWithDefaults } from '../lib/defaults'
 
 const USER_KEY = 'currentUser'
 const LEGACY_KEY = 'workout_tracker_data'
@@ -138,7 +138,14 @@ export async function getSettings(username) {
     await setDoc(settingsRef(username), defaults)
     return defaults
   }
-  return { ...getDefaultSettings(), ...snap.data() }
+  const saved = snap.data()
+  const merged = mergeSettingsWithDefaults(saved)
+  const routineChanged =
+    JSON.stringify(saved.routineOrder || []) !== JSON.stringify(merged.routineOrder)
+  if (routineChanged) {
+    await setDoc(settingsRef(username), merged)
+  }
+  return merged
 }
 
 export async function saveSettings(username, settings) {
@@ -339,10 +346,7 @@ export async function importBundle(username, imported) {
   }
 
   if (imported.settings) {
-    await setDoc(settingsRef(username), {
-      ...getDefaultSettings(),
-      ...imported.settings,
-    })
+    await setDoc(settingsRef(username), mergeSettingsWithDefaults(imported.settings))
   }
 
   return true

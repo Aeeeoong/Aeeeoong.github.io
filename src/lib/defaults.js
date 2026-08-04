@@ -1,6 +1,6 @@
 export function getDefaultSettings() {
   return {
-    routineOrder: ['하체', '등', '가슴어깨', '유산소'],
+    routineOrder: ['하체', '등', '가슴어깨', '유산소', '자유'],
     exerciseProfiles: {},
     exercises: {
       하체: [
@@ -26,6 +26,7 @@ export function getDefaultSettings() {
         '어시스트 딥',
       ],
       유산소: ['천국의 계단', '런닝머신 (평지)', '런닝머신 (경사)'],
+      자유: [],
     },
   }
 }

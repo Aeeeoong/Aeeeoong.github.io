@@ -19,6 +19,7 @@ import {
 import { DeleteOutlined, HolderOutlined, HistoryOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
 import CardioExerciseInputs from '../components/CardioExerciseInputs'
+import DateField from '../components/DateField'
 import {
   ExerciseCompareHint,
   ExerciseDoneBadge,
@@ -45,6 +46,12 @@ import {
   loadRecordDraft,
   saveRecordDraft,
 } from '../lib/recordDraft'
+import {
+  defaultAddableExercise,
+  getAddableExerciseNames,
+  getAddableExerciseOptions,
+  isFreeRoutine,
+} from '../lib/routines'
 import { getTodayString } from '../lib/utils'
 
 const { Text } = Typography
@@ -172,6 +179,12 @@ export default function RecordPage() {
 
     let cancelled = false
     async function setup() {
+      if (isFreeRoutine(type)) {
+        setExercises([])
+        setPlaceholders({})
+        return
+      }
+
       const names = settings.exercises[type] || []
       setExercises(names.map((name) => emptyExercise(name, settings)))
       const recent = await getWorkouts(user)
@@ -335,21 +348,25 @@ export default function RecordPage() {
   }
 
   function addExercise() {
-    const all = settings?.exercises[type] || []
     const current = exercises.map((e) => e.name)
-    const available = all.filter((n) => !current.includes(n))
+    const available = getAddableExerciseNames(settings, type, current)
     if (available.length === 0) {
-      message.warning('추가할 수 있는 운동이 없습니다.')
+      message.warning(
+        isFreeRoutine(type)
+          ? '추가할 수 있는 운동이 없습니다. (모든 기구가 이미 추가됨)'
+          : '추가할 수 있는 운동이 없습니다.',
+      )
       return
     }
-    let selected = available[0]
+    const options = getAddableExerciseOptions(settings, type, current)
+    let selected = defaultAddableExercise(settings, type, current)
     Modal.confirm({
-      title: '운동 추가',
+      title: isFreeRoutine(type) ? '운동 추가 (전체 기구)' : '운동 추가',
       content: (
         <Select
           style={{ width: '100%', marginTop: 12 }}
-          defaultValue={available[0]}
-          options={available.map((n) => ({ value: n, label: n }))}
+          defaultValue={selected}
+          options={options}
           onChange={(v) => {
             selected = v
           }}
@@ -680,6 +697,12 @@ export default function RecordPage() {
                 </Card>
               )
             })}
+
+            {isFreeRoutine(type) && exercises.length === 0 && (
+              <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: '8px 0' }}>
+                자유 루틴 — 아래 「운동 추가」에서 기구를 골라주세요 (유산소가 맨 위)
+              </Text>
+            )}
 
             <Button type="dashed" block icon={<PlusOutlined />} onClick={addExercise}>
               운동 추가

@@ -23,6 +23,12 @@ import {
   serializeExercises,
 } from '../lib/workoutForm'
 import { getExerciseProfile, inputNumberPropsForProfile, isCardioProfile } from '../lib/exerciseConfig'
+import {
+  defaultAddableExercise,
+  getAddableExerciseNames,
+  getAddableExerciseOptions,
+  isFreeRoutine,
+} from '../lib/routines'
 import { updateWorkout } from '../services/storage'
 
 const { Text } = Typography
@@ -66,6 +72,10 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
 
   function handleTypeChange(nextType) {
     setType(nextType)
+    if (isFreeRoutine(nextType)) {
+      setExercises([])
+      return
+    }
     const names = settings?.exercises?.[nextType] || []
     setExercises((prev) => {
       const byName = Object.fromEntries(prev.map((ex) => [ex.name, ex]))
@@ -75,21 +85,25 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
   }
 
   function addExercise() {
-    const all = settings?.exercises?.[type] || []
     const current = exercises.map((e) => e.name)
-    const available = all.filter((n) => !current.includes(n))
+    const available = getAddableExerciseNames(settings, type, current)
     if (available.length === 0) {
-      message.warning('추가할 수 있는 운동이 없습니다.')
+      message.warning(
+        isFreeRoutine(type)
+          ? '추가할 수 있는 운동이 없습니다. (모든 기구가 이미 추가됨)'
+          : '추가할 수 있는 운동이 없습니다.',
+      )
       return
     }
-    let selected = available[0]
+    const options = getAddableExerciseOptions(settings, type, current)
+    let selected = defaultAddableExercise(settings, type, current)
     Modal.confirm({
-      title: '운동 추가',
+      title: isFreeRoutine(type) ? '운동 추가 (전체 기구)' : '운동 추가',
       content: (
         <Select
           style={{ width: '100%', marginTop: 12 }}
-          defaultValue={available[0]}
-          options={available.map((n) => ({ value: n, label: n }))}
+          defaultValue={selected}
+          options={options}
           onChange={(v) => {
             selected = v
           }}

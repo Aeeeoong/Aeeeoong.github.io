@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import UserSwitcher from './UserSwitcher'
 
 const { Title, Text } = Typography
 
@@ -39,6 +40,7 @@ export function PageHeader({ title, actions }) {
         </div>
         <div>{actions}</div>
       </div>
+      <UserSwitcher />
     </header>
   )
 }

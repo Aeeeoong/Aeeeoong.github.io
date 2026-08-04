@@ -3,7 +3,8 @@ import {
   bootstrapUser,
   clearCurrentUser,
   getCurrentUser,
-  getLocalRegisteredUsers,
+  getKnownUsers,
+  addKnownUser,
   setCurrentUser,
 } from '../services/storage'
 
@@ -15,7 +16,7 @@ export function AuthProvider({ children }) {
   const [bootstrapping, setBootstrapping] = useState(false)
   const [syncError, setSyncError] = useState(null)
   const [migrationNote, setMigrationNote] = useState(null)
-  const [knownUsers, setKnownUsers] = useState(() => getLocalRegisteredUsers())
+  const [knownUsers, setKnownUsers] = useState(() => getKnownUsers())
 
   useEffect(() => {
     let cancelled = false
@@ -53,10 +54,23 @@ export function AuthProvider({ children }) {
   }, [user])
 
   const login = useCallback(async (username) => {
-    setCurrentUser(username)
-    setKnownUsers((prev) => (prev.includes(username) ? prev : [...prev, username]))
-    setUser(username)
+    const name = username.trim()
+    setCurrentUser(name)
+    addKnownUser(name)
+    setKnownUsers(getKnownUsers())
+    setUser(name)
   }, [])
+
+  const switchUser = useCallback(async (username) => {
+    const name = username.trim()
+    if (!name || name === user) return
+    setCurrentUser(name)
+    addKnownUser(name)
+    setKnownUsers(getKnownUsers())
+    setMigrationNote(null)
+    setSyncError(null)
+    setUser(name)
+  }, [user])
 
   const logout = useCallback(() => {
     clearCurrentUser()
@@ -76,10 +90,11 @@ export function AuthProvider({ children }) {
       clearMigrationNote: () => setMigrationNote(null),
       knownUsers,
       login,
+      switchUser,
       logout,
       isLoggedIn: !!user,
     }),
-    [user, ready, bootstrapping, syncError, migrationNote, knownUsers, login, logout],
+    [user, ready, bootstrapping, syncError, migrationNote, knownUsers, login, switchUser, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

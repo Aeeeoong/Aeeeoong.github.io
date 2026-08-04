@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   App,
   Badge,
@@ -18,6 +18,7 @@ import {
 } from 'antd'
 import { LeftOutlined, RightOutlined } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
+import OnboardingModal from '../components/OnboardingModal'
 import { useAuth } from '../context/AuthContext'
 import { getLatestInbody, getInbodyRecords, getSettings, getWorkouts } from '../services/storage'
 import {
@@ -26,12 +27,14 @@ import {
   getWeeklySummary,
 } from '../lib/workoutInsights'
 import { displayDate, formatNumber } from '../lib/utils'
+import { hasSeenOnboarding } from '../lib/onboarding'
 
 const { Text, Paragraph } = Typography
 
 export default function DashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const { modal } = App.useApp()
   const [loading, setLoading] = useState(true)
   const [latestInbody, setLatestInbody] = useState(null)
@@ -39,6 +42,7 @@ export default function DashboardPage() {
   const [workouts, setWorkouts] = useState([])
   const [inbodyRecords, setInbodyRecords] = useState([])
   const [settings, setSettings] = useState(null)
+  const [onboardingOpen, setOnboardingOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -68,6 +72,18 @@ export default function DashboardPage() {
       cancelled = true
     }
   }, [user, modal])
+
+  useEffect(() => {
+    if (loading || !user) return
+    if (location.state?.showOnboarding) {
+      setOnboardingOpen(true)
+      navigate('/', { replace: true, state: {} })
+      return
+    }
+    if (!hasSeenOnboarding(user)) {
+      setOnboardingOpen(true)
+    }
+  }, [loading, user, location.state, navigate])
 
   const byDate = useMemo(() => {
     const map = {}
@@ -242,6 +258,11 @@ export default function DashboardPage() {
           </>
         )}
       </main>
+      <OnboardingModal
+        open={onboardingOpen}
+        username={user}
+        onClose={() => setOnboardingOpen(false)}
+      />
     </>
   )
 }

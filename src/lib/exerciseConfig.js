@@ -224,3 +224,15 @@ export function inputNumberPropsForProfile(profile) {
     max: profile.max,
   }
 }
+
+/** 입력란 아래 짧은 안내 (덤벨·단위 등) */
+export function getExerciseInputHint(name, profile) {
+  if (!name || !profile) return null
+  if (profile.unit === 'cardio') return '속도·시간·경사를 입력하세요'
+  if (profile.unit === 'level') return '기구 레벨 숫자 — 높을수록 좋아요'
+  if (profile.unit === 'assist') return '보조 kg — 숫자가 낮을수록 좋아요'
+  if (profile.unit === 'none') return '횟수만 기록하면 됩니다'
+  if (name.includes('덤벨')) return '한 손당 kg 기준 (10kg 덤벨 = 10 입력)'
+  if (profile.unit === 'kg') return '무게는 kg 단위입니다'
+  return null
+}

@@ -23,6 +23,7 @@ import DateField from '../components/DateField'
 import {
   ExerciseCompareHint,
   ExerciseDoneBadge,
+  ExerciseInputHint,
   PersonalBestBadge,
   PersonalBestCompareHint,
 } from '../components/ExerciseHints'
@@ -50,6 +51,7 @@ import {
   defaultAddableExercise,
   getAddableExerciseNames,
   getAddableExerciseOptions,
+  getDefaultRecordRoutine,
   isFreeRoutine,
 } from '../lib/routines'
 import { getTodayString } from '../lib/utils'
@@ -130,7 +132,7 @@ export default function RecordPage() {
       }
 
       setDraftStatus('none')
-      setType(s.routineOrder[0] || '')
+      setType(getDefaultRecordRoutine(s))
     }
     init()
     return () => {
@@ -148,7 +150,7 @@ export default function RecordPage() {
     const draft = loadRecordDraft(user)
     if (!isValidDraft(draft)) {
       setDraftStatus('none')
-      if (!type) setType(settings.routineOrder[0] || '')
+      if (!type) setType(getDefaultRecordRoutine(settings))
       return
     }
 
@@ -168,7 +170,7 @@ export default function RecordPage() {
         clearRecordDraft(user)
         setDraftSavedAt(null)
         setDraftStatus('dismissed')
-        setType(settings.routineOrder[0] || '')
+        setType(getDefaultRecordRoutine(settings))
       },
     })
   }, [settings, draftStatus, user, modal, type])
@@ -393,7 +395,7 @@ export default function RecordPage() {
     }
   }
 
-  async function handleSave() {
+  async function persistWorkout() {
     const result = serializeExercises(exercises, settings)
     if (result.error) {
       message.warning(result.error)
@@ -412,6 +414,41 @@ export default function RecordPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  async function handleSave() {
+    const result = serializeExercises(exercises, settings)
+    if (result.error) {
+      message.warning(result.error)
+      return
+    }
+
+    const sameDay = allWorkouts.filter((w) => w.date === date)
+    const sameDaySameType = sameDay.filter((w) => w.type === type)
+
+    if (sameDay.length > 0 && sameDaySameType.length > 0) {
+      modal.confirm({
+        title: '오늘 이미 이 루틴을 기록했어요',
+        content: `${date} · ${type} 기록이 ${sameDaySameType.length}건 있어요. 추가로 저장할까요?`,
+        okText: '추가 저장',
+        cancelText: '취소',
+        onOk: () => persistWorkout(),
+      })
+      return
+    }
+
+    if (sameDay.length > 0) {
+      modal.confirm({
+        title: '이 날짜에 이미 기록이 있어요',
+        content: `${date}에 ${sameDay.length}건 기록됨 (${sameDay.map((w) => w.type).join(', ')}). 계속 저장할까요?`,
+        okText: '저장',
+        cancelText: '취소',
+        onOk: () => persistWorkout(),
+      })
+      return
+    }
+
+    await persistWorkout()
   }
 
   function handleLoadLastWorkout() {
@@ -436,6 +473,7 @@ export default function RecordPage() {
   const personalBests = getPersonalBests(allWorkouts, settings)
   const completion = getCompletionRate(exercises)
   const lastWorkoutForType = getLastWorkoutByType(allWorkouts, type)
+  const workoutsOnDate = allWorkouts.filter((w) => w.date === date)
 
   function clearDraft() {
     modal.confirm({
@@ -493,6 +531,19 @@ export default function RecordPage() {
                 style={{ width: '100%' }}
               />
             </Form.Item>
+            {workoutsOnDate.length > 0 && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message={
+                  date === getTodayString()
+                    ? `오늘 이미 ${workoutsOnDate.length}회 기록했어요!`
+                    : `이 날짜에 ${workoutsOnDate.length}건 기록이 있어요`
+                }
+                description={`${workoutsOnDate.map((w) => w.type).join(' · ')} — 추가 기록도 가능합니다`}
+              />
+            )}
             {lastWorkoutForType && (
               <Button
                 block
@@ -588,13 +639,16 @@ export default function RecordPage() {
                   }
                 >
                   {isCardio ? (
-                    <CardioExerciseInputs
-                      ex={ex}
-                      ph={ph}
-                      index={index}
-                      updateExercise={updateExercise}
-                      profile={profile}
-                    />
+                    <>
+                      <CardioExerciseInputs
+                        ex={ex}
+                        ph={ph}
+                        index={index}
+                        updateExercise={updateExercise}
+                        profile={profile}
+                      />
+                      <ExerciseInputHint name={ex.name} profile={profile} />
+                    </>
                   ) : ex.mode === 'simple' ? (
                     <>
                       <SimpleExerciseInputs
@@ -604,6 +658,7 @@ export default function RecordPage() {
                         updateExercise={updateExercise}
                         profile={profile}
                       />
+                      <ExerciseInputHint name={ex.name} profile={profile} />
                       {prev && (
                         <ExerciseCompareHint
                           current={ex}
@@ -621,6 +676,7 @@ export default function RecordPage() {
                     </>
                   ) : (
                     <>
+                      <ExerciseInputHint name={ex.name} profile={profile} />
                       <Form.Item label="세트 수" style={{ marginBottom: 12 }}>
                         <InputNumber
                           min={1}

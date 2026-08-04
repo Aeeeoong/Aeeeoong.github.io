@@ -70,3 +70,10 @@ export function defaultAddableExercise(settings, routineType, currentNames = [])
   const names = getAddableExerciseNames(settings, routineType, currentNames)
   return names[0] || null
 }
+
+/** 기록하기 화면 기본 루틴 — 자유 루틴 우선 */
+export function getDefaultRecordRoutine(settings) {
+  const order = settings?.routineOrder || []
+  if (order.includes(FREE_ROUTINE_NAME)) return FREE_ROUTINE_NAME
+  return order[0] || ''
+}

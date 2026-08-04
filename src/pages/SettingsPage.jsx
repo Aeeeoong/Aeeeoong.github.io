@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   App,
   Button,
@@ -24,6 +25,7 @@ import {
 } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
+import { clearOnboardingSeen } from '../lib/onboarding'
 import {
   exportBundle,
   getSettings,
@@ -36,6 +38,7 @@ const { Text, Paragraph } = Typography
 
 export default function SettingsPage() {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const { message, modal } = App.useApp()
   const [settings, setSettings] = useState(null)
   const [routineModal, setRoutineModal] = useState(null)
@@ -160,12 +163,25 @@ export default function SettingsPage() {
           <Paragraph>
             현재 사용자: <Text strong>{user}</Text>
           </Paragraph>
+          <Paragraph type="secondary" style={{ fontSize: 13 }}>
+            파트너와 번갈아 쓸 때는 화면 상단의 사용자 태그를 눌러 전환하세요.
+          </Paragraph>
           <Paragraph style={{ color: '#34d399' }}>저장소: Firebase Firestore (로컬 폴백 없음)</Paragraph>
-          <Popconfirm title="로그아웃할까요?" okText="로그아웃" cancelText="취소" onConfirm={logout}>
-            <Button danger icon={<LogoutOutlined />}>
-              로그아웃
+          <Space wrap>
+            <Button
+              onClick={() => {
+                clearOnboardingSeen(user)
+                navigate('/', { state: { showOnboarding: true } })
+              }}
+            >
+              사용법 다시 보기
             </Button>
-          </Popconfirm>
+            <Popconfirm title="로그아웃할까요?" okText="로그아웃" cancelText="취소" onConfirm={logout}>
+              <Button danger icon={<LogoutOutlined />}>
+                로그아웃
+              </Button>
+            </Popconfirm>
+          </Space>
         </Card>
 
         <Card

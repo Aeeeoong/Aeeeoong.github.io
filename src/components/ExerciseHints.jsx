@@ -1,5 +1,5 @@
 import { Tag, Typography } from 'antd'
-import { personalBestLabel, usesIntegerValue } from '../lib/exerciseConfig'
+import { getExerciseInputHint, personalBestLabel, usesIntegerValue } from '../lib/exerciseConfig'
 import { compareWithPersonalBest, compareWithPrevious } from '../lib/workoutInsights'
 
 const { Text } = Typography
@@ -64,5 +64,15 @@ export function ExerciseDoneBadge({ filled }) {
     <Tag color="success" style={{ marginInlineStart: 4 }}>
       ✓
     </Tag>
+  )
+}
+
+export function ExerciseInputHint({ name, profile }) {
+  const hint = getExerciseInputHint(name, profile)
+  if (!hint) return null
+  return (
+    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4, marginBottom: 4 }}>
+      💡 {hint}
+    </Text>
   )
 }

@@ -73,6 +73,37 @@ header {
   align-items: center;
 }
 
+.user-switcher {
+  max-width: 1200px;
+  margin: 0.75rem auto 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.user-switcher-label {
+  display: block;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.user-switcher-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.user-switcher-tag {
+  cursor: pointer;
+  margin: 0 !important;
+  padding: 2px 10px !important;
+  font-size: 13px !important;
+  user-select: none;
+}
+
+.user-switcher-tag.active {
+  font-weight: 600;
+}
+
 h1 {
   font-size: 1.5rem;
   font-weight: 700;

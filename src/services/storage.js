@@ -14,6 +14,7 @@ import { db, ensureAnonymousAuth } from '../lib/firebase'
 import { getDefaultData, getDefaultSettings, mergeSettingsWithDefaults } from '../lib/defaults'
 
 const USER_KEY = 'currentUser'
+const KNOWN_USERS_KEY = 'workout_tracker_known_users'
 const LEGACY_KEY = 'workout_tracker_data'
 const MIGRATED_PREFIX = 'firebase_migrated_v2_'
 
@@ -61,6 +62,26 @@ export function getLocalRegisteredUsers() {
   const current = getCurrentUser()
   if (current) users.add(current)
   return [...users]
+}
+
+/** 이 기기에서 로그인해 본 사용자 목록 (파트너 빠른 전환용) */
+export function getKnownUsers() {
+  const users = new Set(getLocalRegisteredUsers())
+  try {
+    const stored = JSON.parse(localStorage.getItem(KNOWN_USERS_KEY) || '[]')
+    if (Array.isArray(stored)) stored.forEach((name) => users.add(name))
+  } catch {
+    /* ignore */
+  }
+  return [...users]
+}
+
+export function addKnownUser(username) {
+  if (!username) return
+  const trimmed = username.trim()
+  const users = getKnownUsers()
+  if (users.includes(trimmed)) return
+  localStorage.setItem(KNOWN_USERS_KEY, JSON.stringify([...users, trimmed]))
 }
 
 function readLocalBundle(username) {

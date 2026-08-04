@@ -61,16 +61,23 @@ export function AuthProvider({ children }) {
     setUser(name)
   }, [])
 
-  const switchUser = useCallback(async (username) => {
-    const name = username.trim()
-    if (!name || name === user) return
-    setCurrentUser(name)
-    addKnownUser(name)
-    setKnownUsers(getKnownUsers())
-    setMigrationNote(null)
-    setSyncError(null)
-    setUser(name)
-  }, [user])
+  const switchUser = useCallback(
+    (username) => {
+      const name = username.trim()
+      if (!name || name === user) return false
+      setBootstrapping(true)
+      setReady(false)
+      setCurrentUser(name)
+      addKnownUser(name)
+      setKnownUsers(getKnownUsers())
+      setMigrationNote(null)
+      setSyncError(null)
+      sessionStorage.setItem('user_switch_pending', '1')
+      setUser(name)
+      return true
+    },
+    [user],
+  )
 
   const logout = useCallback(() => {
     clearCurrentUser()

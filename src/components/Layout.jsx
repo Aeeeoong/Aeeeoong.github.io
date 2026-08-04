@@ -40,13 +40,12 @@ export function PageHeader({ title, actions }) {
         </div>
         <div>{actions}</div>
       </div>
-      <UserSwitcher />
     </header>
   )
 }
 
 export default function Layout() {
-  const { syncError, migrationNote, clearMigrationNote } = useAuth()
+  const { syncError, migrationNote, clearMigrationNote, user, isLoggedIn } = useAuth()
 
   return (
     <>
@@ -69,6 +68,12 @@ export default function Layout() {
           onClose={clearMigrationNote}
           message={migrationNote}
         />
+      )}
+
+      {isLoggedIn && user && (
+        <div className="layout-user-bar">
+          <UserSwitcher />
+        </div>
       )}
 
       <Outlet />

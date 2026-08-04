@@ -16,6 +16,7 @@ import { getDefaultData, getDefaultSettings, mergeSettingsWithDefaults } from '.
 const USER_KEY = 'currentUser'
 const KNOWN_USERS_KEY = 'workout_tracker_known_users'
 const LEGACY_KEY = 'workout_tracker_data'
+const LEGACY_MIGRATED_KEY = 'firebase_migrated_legacy_global'
 const MIGRATED_PREFIX = 'firebase_migrated_v2_'
 
 function userRef(username) {
@@ -85,10 +86,12 @@ export function addKnownUser(username) {
 }
 
 function readLocalBundle(username) {
-  const keys = [
-    username ? `workout_tracker_data_${username}` : null,
-    LEGACY_KEY,
-  ].filter(Boolean)
+  const keys = []
+  if (username) keys.push(`workout_tracker_data_${username}`)
+  // 예전 단일 localStorage 키 — 최초 1회만, 최초 로그인 사용자에게만 이전
+  if (!localStorage.getItem(LEGACY_MIGRATED_KEY)) {
+    keys.push(LEGACY_KEY)
+  }
 
   for (const key of keys) {
     const raw = localStorage.getItem(key)
@@ -136,6 +139,9 @@ export async function bootstrapUser(username) {
 
   if (cloudHasData) {
     localStorage.setItem(migratedFlag, 'true')
+    if (!localStorage.getItem(LEGACY_MIGRATED_KEY)) {
+      localStorage.setItem(LEGACY_MIGRATED_KEY, 'true')
+    }
     return { migrated: false }
   }
 
@@ -148,6 +154,9 @@ export async function bootstrapUser(username) {
 
   await importBundle(username, local.data)
   localStorage.setItem(migratedFlag, 'true')
+  if (local.key === LEGACY_KEY) {
+    localStorage.setItem(LEGACY_MIGRATED_KEY, 'true')
+  }
   return { migrated: true, from: local.key }
 }
 

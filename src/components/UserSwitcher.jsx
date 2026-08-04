@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { App, Form, Input, Modal, Tag, Typography } from 'antd'
+import { useMemo, useState } from 'react'
+import { App, Form, Input, Modal, Typography } from 'antd'
 import { PlusOutlined, SwapOutlined } from '@ant-design/icons'
 import { useAuth } from '../context/AuthContext'
 
@@ -19,12 +19,24 @@ export default function UserSwitcher() {
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm()
 
+  const displayUsers = useMemo(() => {
+    const names = new Set(knownUsers)
+    if (user) names.add(user)
+    return [...names]
+  }, [knownUsers, user])
+
   if (!user) return null
 
-  async function handleSwitch(name) {
-    if (bootstrapping || name === user) return
-    await switchUser(name)
-    message.success(`${name}(으)로 전환했어요`)
+  function handleSwitch(name) {
+    if (bootstrapping) return
+    if (name === user) {
+      message.info('현재 선택된 사용자예요')
+      return
+    }
+    const switched = switchUser(name)
+    if (switched) {
+      message.loading({ content: `${name}(으)로 전환 중…`, key: 'user-switch', duration: 0 })
+    }
   }
 
   async function handleAddUser({ username }) {
@@ -35,10 +47,11 @@ export default function UserSwitcher() {
     }
     setSubmitting(true)
     try {
-      await switchUser(name)
-      setAddOpen(false)
-      form.resetFields()
-      message.success(`${name}(으)로 전환했어요`)
+      if (switchUser(name)) {
+        setAddOpen(false)
+        form.resetFields()
+        message.loading({ content: `${name}(으)로 전환 중…`, key: 'user-switch', duration: 0 })
+      }
     } finally {
       setSubmitting(false)
     }
@@ -48,30 +61,34 @@ export default function UserSwitcher() {
     <>
       <div className="user-switcher">
         <Text type="secondary" className="user-switcher-label">
-          <SwapOutlined /> 사용자 {bootstrapping ? '· 동기화 중…' : ''}
+          <SwapOutlined /> 사용자 전환
+          {bootstrapping ? ' · 불러오는 중…' : ''}
         </Text>
         <div className="user-switcher-tags">
-          {knownUsers.map((name) => (
-            <Tag
+          {displayUsers.map((name) => (
+            <button
               key={name}
-              color={name === user ? 'purple' : 'default'}
-              className={`user-switcher-tag${name === user ? ' active' : ''}`}
+              type="button"
+              disabled={bootstrapping}
+              className={`user-switcher-btn${name === user ? ' active' : ''}`}
               onClick={() => handleSwitch(name)}
             >
               {name}
               {name === user ? ' ✓' : ''}
-            </Tag>
+            </button>
           ))}
-          <Tag
-            className="user-switcher-tag user-switcher-add"
-            onClick={() => !bootstrapping && setAddOpen(true)}
+          <button
+            type="button"
+            className="user-switcher-btn user-switcher-add"
+            disabled={bootstrapping}
+            onClick={() => setAddOpen(true)}
           >
             <PlusOutlined /> 사용자 추가
-          </Tag>
+          </button>
         </div>
-        {knownUsers.length < 2 && (
+        {displayUsers.length < 2 && (
           <Text type="secondary" className="user-switcher-hint">
-            파트너 이름을 추가하면 탭 한 번으로 전환할 수 있어요
+            파트너 이름을 추가하면 여기서 바로 전환할 수 있어요
           </Text>
         )}
       </div>
@@ -90,7 +107,7 @@ export default function UserSwitcher() {
         destroyOnClose
       >
         <Paragraph type="secondary" style={{ marginBottom: 16 }}>
-          파트너 이름을 입력하면 그 사람 기록으로 바뀝니다. 각자 데이터는 따로 저장돼요.
+          파트너 이름을 입력하면 그 사람 기록으로 바뀝니다. 각자 데이터는 Firebase에 따로 저장돼요.
         </Paragraph>
         <Form form={form} layout="vertical" onFinish={handleAddUser} requiredMark={false}>
           <Form.Item name="username" rules={USERNAME_RULES}>

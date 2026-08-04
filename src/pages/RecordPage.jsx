@@ -10,17 +10,31 @@ import {
   Input,
   InputNumber,
   Modal,
+  Progress,
   Segmented,
   Select,
   Space,
   Typography,
 } from 'antd'
-import { DeleteOutlined, HolderOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons'
+import { DeleteOutlined, HolderOutlined, HistoryOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
 import DateField from '../components/DateField'
+import {
+  ExerciseCompareHint,
+  ExerciseDoneBadge,
+  PersonalBestBadge,
+} from '../components/ExerciseHints'
 import { useAuth } from '../context/AuthContext'
 import { addWorkout, getSettings, getWorkouts } from '../services/storage'
-import { emptyExercise, serializeExercises } from '../lib/workoutForm'
+import { emptyExercise, exerciseFromSaved, serializeExercises } from '../lib/workoutForm'
+import {
+  checkPersonalBest,
+  findPreviousExercise,
+  getCompletionRate,
+  getLastWorkoutByType,
+  getPersonalBests,
+  isExerciseFilled,
+} from '../lib/workoutInsights'
 import {
   clearRecordDraft,
   formatDraftTime,
@@ -82,6 +96,7 @@ export default function RecordPage() {
   const [draftSavedAt, setDraftSavedAt] = useState(null)
   const [dragIndex, setDragIndex] = useState(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
+  const [allWorkouts, setAllWorkouts] = useState([])
   const touchDragRef = useRef(null)
   const draftSnapshotRef = useRef({ date, type, exercises, user })
 
@@ -109,6 +124,10 @@ export default function RecordPage() {
     return () => {
       cancelled = true
     }
+  }, [user])
+
+  useEffect(() => {
+    getWorkouts(user).then(setAllWorkouts)
   }, [user])
 
   useEffect(() => {
@@ -369,6 +388,29 @@ export default function RecordPage() {
     }
   }
 
+  function handleLoadLastWorkout() {
+    const last = getLastWorkoutByType(allWorkouts, type)
+    if (!last?.exercises?.length) {
+      message.info('이 루틴의 이전 기록이 없습니다.')
+      return
+    }
+    modal.confirm({
+      title: '지난번 기록 불러오기',
+      content: `${last.date} · ${last.type} 기록을 그대로 가져올까요?`,
+      okText: '불러오기',
+      cancelText: '취소',
+      onOk: () => {
+        setExercises(last.exercises.map(exerciseFromSaved))
+        setDraftStatus('restored')
+        message.success('지난번 기록을 불러왔습니다.')
+      },
+    })
+  }
+
+  const personalBests = getPersonalBests(allWorkouts)
+  const completion = getCompletionRate(exercises)
+  const lastWorkoutForType = getLastWorkoutByType(allWorkouts, type)
+
   function clearDraft() {
     modal.confirm({
       title: '임시저장을 삭제할까요?',
@@ -425,11 +467,38 @@ export default function RecordPage() {
                 style={{ width: '100%' }}
               />
             </Form.Item>
+            {lastWorkoutForType && (
+              <Button
+                block
+                icon={<HistoryOutlined />}
+                style={{ marginBottom: 16 }}
+                onClick={handleLoadLastWorkout}
+              >
+                지난번이랑 똑같이 ({lastWorkoutForType.date})
+              </Button>
+            )}
           </Form>
+
+          {exercises.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <Flex justify="space-between" align="center" style={{ marginBottom: 4 }}>
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  입력 진행 {completion.label}
+                </Text>
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  {completion.percent}%
+                </Text>
+              </Flex>
+              <Progress percent={completion.percent} showInfo={false} size="small" />
+            </div>
+          )}
 
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             {exercises.map((ex, index) => {
               const ph = placeholders[ex.name] || {}
+              const prev = findPreviousExercise(allWorkouts, type, ex.name)
+              const pr = checkPersonalBest(ex.name, ex, personalBests)
+              const filled = isExerciseFilled(ex)
               const cardClass = [
                 'exercise-card-draggable',
                 dragIndex === index ? 'dragging' : '',
@@ -463,6 +532,8 @@ export default function RecordPage() {
                         <HolderOutlined />
                       </span>
                       <span>{ex.name}</span>
+                      <ExerciseDoneBadge filled={filled} />
+                      <PersonalBestBadge pr={pr} />
                     </Flex>
                   }
                   extra={
@@ -486,12 +557,17 @@ export default function RecordPage() {
                   }
                 >
                   {ex.mode === 'simple' ? (
-                    <SimpleExerciseInputs
-                      ex={ex}
-                      ph={ph}
-                      index={index}
-                      updateExercise={updateExercise}
-                    />
+                    <>
+                      <SimpleExerciseInputs
+                        ex={ex}
+                        ph={ph}
+                        index={index}
+                        updateExercise={updateExercise}
+                      />
+                      {prev && (
+                        <ExerciseCompareHint current={ex} previous={prev.exercise} />
+                      )}
+                    </>
                   ) : (
                     <>
                       <Form.Item label="세트 수" style={{ marginBottom: 12 }}>
@@ -545,6 +621,9 @@ export default function RecordPage() {
                           </Flex>
                         ))}
                       </Space>
+                      {prev && (
+                        <ExerciseCompareHint current={ex} previous={prev.exercise} />
+                      )}
                     </>
                   )}
                   <Form.Item label="코멘트" style={{ marginTop: 12, marginBottom: 0 }}>

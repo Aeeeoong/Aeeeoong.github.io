@@ -5,6 +5,7 @@ import {
   improvementDelta,
   isPersonalBestValue,
   personalBestLabel,
+  usesIntegerValue,
   valueUnitForCompare,
 } from './exerciseConfig'
 
@@ -98,7 +99,7 @@ export function compareWithPrevious(currentExercise, previousExercise, profile) 
   if (!cur || !prev || !profile) return null
 
   const unit = valueUnitForCompare(profile)
-  const valueDecimals = profile.unit === 'level' ? 0 : 1
+  const valueDecimals = usesIntegerValue(profile) ? 0 : 1
   const parts = []
 
   if (cur.maxWeight != null && prev.maxWeight != null) {
@@ -418,7 +419,7 @@ function findWeeklyImprovement(thisWeek, lastWeek, settings) {
     bestName = name
     const unit = valueUnitForCompare(profile)
     const fmt = (v) => formatExerciseValue(v, profile)
-    bestLine = `${name}: ${fmt(prev)} → ${fmt(value)} (+${profile.unit === 'level' ? diff : diff.toFixed(1) + unit})`
+    bestLine = `${name}: ${fmt(prev)} → ${fmt(value)} (+${usesIntegerValue(profile) ? diff : diff.toFixed(1) + unit})`
   }
 
   if (bestLine) return bestLine
@@ -531,7 +532,7 @@ export function compareWithPersonalBest(currentExercise, bestEntry, profile) {
       status: 'beat',
       best: bestVal,
       diff: imp,
-      label: `${pbLabel} ${fmt(bestVal)} → ${fmt(cur.maxWeight)} (+${profile.unit === 'level' ? imp : imp.toFixed(1) + unit})`,
+      label: `${pbLabel} ${fmt(bestVal)} → ${fmt(cur.maxWeight)} (+${usesIntegerValue(profile) ? imp : imp.toFixed(1) + unit})`,
     }
   }
   if (imp === 0) {

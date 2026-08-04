@@ -1,5 +1,5 @@
 import { Tag, Typography } from 'antd'
-import { personalBestLabel } from '../lib/exerciseConfig'
+import { personalBestLabel, usesIntegerValue } from '../lib/exerciseConfig'
 import { compareWithPersonalBest, compareWithPrevious } from '../lib/workoutInsights'
 
 const { Text } = Typography
@@ -48,8 +48,9 @@ export function PersonalBestCompareHint({ current, bestEntry, profile }) {
 export function PersonalBestBadge({ pr }) {
   if (!pr) return null
   const label = pr.profile ? personalBestLabel(pr.profile) : '역대 최고'
-  const unit = pr.profile?.unit === 'level' ? '' : 'kg'
-  const diffStr = pr.profile?.unit === 'level' ? String(pr.diff) : pr.diff.toFixed(1) + unit
+  const diffStr = usesIntegerValue(pr.profile)
+    ? String(pr.diff)
+    : pr.diff.toFixed(1) + (pr.profile?.suffix || 'kg')
   return (
     <Tag color="gold" style={{ marginInlineStart: 4 }}>
       🏆 {label}! +{diffStr}

@@ -28,7 +28,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { addWorkout, getSettings, getWorkouts } from '../services/storage'
 import { emptyExercise, exerciseFromSaved, serializeExercises } from '../lib/workoutForm'
-import { getExerciseProfile } from '../lib/exerciseConfig'
+import { getExerciseProfile, inputNumberPropsForProfile } from '../lib/exerciseConfig'
 import {
   checkPersonalBest,
   findPreviousExercise,
@@ -50,16 +50,16 @@ import { getTodayString } from '../lib/utils'
 const { Text } = Typography
 
 function SimpleExerciseInputs({ ex, ph, index, updateExercise, profile }) {
-  const isLevel = profile?.unit === 'level'
+  const numProps = inputNumberPropsForProfile(profile)
+  const isPlainNumber = profile?.unit === 'level' || profile?.unit === 'assist'
   return (
     <div className="simple-exercise-inputs">
       <Form.Item label={profile?.inputLabel || '무게'} className="field-weight" style={{ marginBottom: 8 }}>
         <InputNumber
           style={{ width: '100%' }}
-          step={isLevel ? 1 : 0.5}
-          precision={isLevel ? 0 : 1}
+          {...numProps}
           placeholder={
-            ph.weight != null ? String(ph.weight) : isLevel ? '0' : '0.0'
+            ph.weight != null ? String(ph.weight) : isPlainNumber ? '0' : '0.0'
           }
           value={ex.weight}
           onChange={(v) => updateExercise(index, { weight: v })}
@@ -603,8 +603,7 @@ export default function RecordPage() {
                             <Text style={{ width: 48 }}>{si + 1}세트</Text>
                             <InputNumber
                               style={{ flex: 1 }}
-                              step={profile.unit === 'level' ? 1 : 0.5}
-                              precision={profile.unit === 'level' ? 0 : 1}
+                              {...inputNumberPropsForProfile(profile)}
                               placeholder={profile.inputLabel}
                               value={set.weight}
                               onChange={(v) => {

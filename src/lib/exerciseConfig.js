@@ -1,27 +1,16 @@
 /** @typedef {'kg' | 'level' | 'assist'} ExerciseUnit */
 /** @typedef {'higher' | 'lower'} ExerciseBetter */
 
+/** 사용 중인 기구 기준 — 특이 케이스만 등록, 나머지는 kg */
 export const DEFAULT_EXERCISE_PROFILES = {
-  '어시스트 풀업': {
-    unit: 'assist',
-    better: 'lower',
-    useE1RM: false,
-    inputLabel: '보조',
-    suffix: 'kg',
-  },
-  '어시스트 딥': {
-    unit: 'assist',
-    better: 'lower',
-    useE1RM: false,
-    inputLabel: '보조',
-    suffix: 'kg',
-  },
   '플라이': {
     unit: 'level',
     better: 'higher',
     useE1RM: false,
     inputLabel: '레벨',
     suffix: '',
+    step: 1,
+    precision: 0,
   },
   '레그컬': {
     unit: 'level',
@@ -29,41 +18,19 @@ export const DEFAULT_EXERCISE_PROFILES = {
     useE1RM: false,
     inputLabel: '레벨',
     suffix: '',
+    step: 1,
+    precision: 0,
   },
-  '레그익스텐션': {
-    unit: 'level',
-    better: 'higher',
+  '어시스트 풀업': {
+    unit: 'assist',
+    better: 'lower',
     useE1RM: false,
-    inputLabel: '레벨',
+    inputLabel: '보조',
     suffix: '',
-  },
-  '레그프레스': {
-    unit: 'level',
-    better: 'higher',
-    useE1RM: false,
-    inputLabel: '레벨',
-    suffix: '',
-  },
-  '어브덕션': {
-    unit: 'level',
-    better: 'higher',
-    useE1RM: false,
-    inputLabel: '레벨',
-    suffix: '',
-  },
-  '어덕션': {
-    unit: 'level',
-    better: 'higher',
-    useE1RM: false,
-    inputLabel: '레벨',
-    suffix: '',
-  },
-  '케이블 푸시다운': {
-    unit: 'level',
-    better: 'higher',
-    useE1RM: false,
-    inputLabel: '레벨',
-    suffix: '',
+    step: 1,
+    precision: 0,
+    min: 0,
+    max: 90,
   },
 }
 
@@ -73,6 +40,8 @@ const FALLBACK_PROFILE = {
   useE1RM: true,
   inputLabel: '무게',
   suffix: 'kg',
+  step: 0.5,
+  precision: 1,
 }
 
 export function getExerciseProfile(name, settings) {
@@ -84,13 +53,16 @@ export function getExerciseProfile(name, settings) {
 export function formatExerciseValue(value, profile) {
   if (value == null || Number.isNaN(Number(value))) return '-'
   const n = Number(value)
-  const formatted = profile.unit === 'level' ? String(n) : n.toFixed(1).replace(/\.0$/, '')
+  const formatted =
+    profile.unit === 'level' || profile.unit === 'assist'
+      ? String(n)
+      : n.toFixed(1).replace(/\.0$/, '')
   if (profile.suffix) return `${formatted}${profile.suffix}`
   return formatted
 }
 
 export function valueUnitForCompare(profile) {
-  if (profile.unit === 'level') return ''
+  if (profile.unit === 'level' || profile.unit === 'assist') return ''
   return profile.suffix || 'kg'
 }
 
@@ -112,4 +84,23 @@ export function isPersonalBestValue(current, bestValue, profile) {
 
 export function personalBestLabel(profile) {
   return profile.better === 'lower' ? '역대 최저' : '역대 최고'
+}
+
+export function usesIntegerValue(profile) {
+  return profile.unit === 'level' || profile.unit === 'assist'
+}
+
+export function statisticValueSuffix(profile) {
+  if (profile.unit === 'level') return '레벨'
+  if (profile.unit === 'assist') return '보조'
+  return profile.suffix || 'kg'
+}
+
+export function inputNumberPropsForProfile(profile) {
+  return {
+    step: profile.step ?? (profile.unit === 'level' || profile.unit === 'assist' ? 1 : 0.5),
+    precision: profile.precision ?? (profile.unit === 'level' || profile.unit === 'assist' ? 0 : 1),
+    min: profile.min,
+    max: profile.max,
+  }
 }

@@ -25,6 +25,8 @@ import {
   formatExerciseValue,
   getExerciseProfile,
   personalBestLabel,
+  statisticValueSuffix,
+  usesIntegerValue,
 } from '../lib/exerciseConfig'
 import {
   getExerciseSummary,
@@ -284,11 +286,11 @@ export default function StatsPage() {
                 <Statistic
                   title={exerciseSummary.pbLabel || '역대 최고'}
                   value={
-                    exerciseProfile?.unit === 'level'
+                    usesIntegerValue(exerciseProfile)
                       ? exerciseSummary.allTimeBest
                       : formatNumber(exerciseSummary.allTimeBest)
                   }
-                  suffix={exerciseProfile?.unit === 'level' ? '레벨' : exerciseProfile?.suffix || 'kg'}
+                  suffix={statisticValueSuffix(exerciseProfile)}
                 />
               </Col>
               <Col xs={8}>

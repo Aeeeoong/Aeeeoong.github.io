@@ -21,6 +21,7 @@ import {
   exerciseFromSaved,
   serializeExercises,
 } from '../lib/workoutForm'
+import { getExerciseProfile, inputNumberPropsForProfile } from '../lib/exerciseConfig'
 import { updateWorkout } from '../services/storage'
 
 const { Text } = Typography
@@ -154,7 +155,9 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
       </Form>
 
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
-        {exercises.map((ex, index) => (
+        {exercises.map((ex, index) => {
+          const profile = getExerciseProfile(ex.name, settings)
+          return (
           <Card
             key={`${ex.name}-${index}`}
             size="small"
@@ -181,11 +184,10 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
           >
             {ex.mode === 'simple' ? (
               <div className="simple-exercise-inputs">
-                <Form.Item label="무게" className="field-weight" style={{ marginBottom: 8 }}>
+                <Form.Item label={profile.inputLabel} className="field-weight" style={{ marginBottom: 8 }}>
                   <InputNumber
                     style={{ width: '100%' }}
-                    step={0.5}
-                    precision={1}
+                    {...inputNumberPropsForProfile(profile)}
                     value={ex.weight}
                     onChange={(v) => updateExercise(index, { weight: v })}
                   />
@@ -221,9 +223,8 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
                       <Text style={{ width: 48 }}>{si + 1}세트</Text>
                       <InputNumber
                         style={{ flex: 1 }}
-                        step={0.5}
-                        precision={1}
-                        placeholder="무게"
+                        {...inputNumberPropsForProfile(profile)}
+                        placeholder={profile.inputLabel}
                         value={set.weight}
                         onChange={(v) => {
                           const next = [...ex.setsDetail]
@@ -268,7 +269,8 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
               />
             </Form.Item>
           </Card>
-        ))}
+          )
+        })}
 
         <Button type="dashed" block icon={<PlusOutlined />} onClick={addExercise}>
           운동 추가

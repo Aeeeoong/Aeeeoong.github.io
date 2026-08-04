@@ -1,11 +1,19 @@
-import koKR from 'antd/locale/ko_KR'
+import koKRImport from 'antd/locale/ko_KR'
 
+function unwrapAntdLocale(mod) {
+  if (mod?.DatePicker) return mod
+  if (mod?.default?.DatePicker) return mod.default
+  return mod
+}
+
+const koKR = unwrapAntdLocale(koKRImport)
 const shortWeekDaysMonFirst = ['월', '화', '수', '목', '금', '토', '일']
 
+const basePickerLocale = koKR.DatePicker || {}
 const datePickerLocale = {
-  ...koKR.DatePicker,
+  ...basePickerLocale,
   lang: {
-    ...koKR.DatePicker.lang,
+    ...(basePickerLocale.lang || {}),
     shortWeekDays: shortWeekDaysMonFirst,
   },
 }

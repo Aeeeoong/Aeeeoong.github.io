@@ -198,8 +198,8 @@ export function calculateStreak(workouts) {
   return { current, longest, message }
 }
 
-/** 주 3회 루틴 기준 (3분할) */
-const WEEKLY_GOAL = 3
+/** 주간 운동 목표 — 3일+휴1 패턴 기준 약 5~6회/주, 목표는 5회 */
+const WEEKLY_GOAL = 5
 
 function pickDaily(messages, salt = '') {
   const today = formatDate(new Date())
@@ -242,7 +242,7 @@ export function getMotivationBanner(workouts) {
       main: pickDaily([
         '이번 주 목표 달성! 🎉',
         '완벽한 한 주예요, 정말 잘했어요',
-        '3회 채웠어요 — 이번 주 MVP',
+        `${WEEKLY_GOAL}회 채웠어요 — 이번 주 MVP`,
       ], 'goal'),
       sub: `${weekCount}번째 운동까지 마쳤어요`,
     }
@@ -282,24 +282,24 @@ export function getMotivationBanner(workouts) {
     }
   }
 
-  if (weekCount === 1) {
+  if (weekCount >= 1 && weekCount < WEEKLY_GOAL - 1) {
     return {
       main: pickDaily([
         '좋은 출발! 한 번 더 가볼까요?',
-        '1회 완료 — 분위기 탔어요',
-        '첫 루틴 끝! 다음도 기대돼요',
-      ], 'week1'),
+        `${weekCount}회 완료 — 분위기 탔어요`,
+        '꾸준히 쌓이고 있어요',
+      ], 'week-early'),
       sub: `${weekProgress} · ${WEEKLY_GOAL - weekCount}번 더 하면 목표 달성`,
     }
   }
 
-  if (weekCount === 2) {
+  if (weekCount === WEEKLY_GOAL - 1) {
     return {
       main: pickDaily([
         '거의 다 왔어요! 한 번만 더',
-        '2/3 — 마지막 한 방 남았어요',
+        `${weekCount}/${WEEKLY_GOAL} — 마지막 한 방 남았어요`,
         '이번 주 마무리가 코앞이에요',
-      ], 'week2'),
+      ], 'week-almost'),
       sub: `${weekProgress} · 한 번 더 하면 이번 주 완료`,
     }
   }
@@ -309,7 +309,7 @@ export function getMotivationBanner(workouts) {
       main: pickDaily([
         '이번 주도 잘하고 있어요',
         '목표 달성! 쉬는 것도 훈련이에요',
-        '3회 채웠으니 오늘은 편히 쉬세요',
+        `${WEEKLY_GOAL}회 채웠으니 오늘은 편히 쉬세요`,
       ], 'rest-goal'),
       sub: '근육은 쉴 때 자라요 😴',
     }
@@ -321,7 +321,7 @@ export function getMotivationBanner(workouts) {
       '회복도 운동의 한 몫이에요',
       '다음 루틴까지 충분히 쉬세요',
       '오늘은 몸 챙기는 날',
-      '3분할? 쉬는 날이 있어야 해요',
+      '3일+휴1? 쉬는 날이 있어야 해요',
     ], 'rest'),
     sub: streak.current >= 2 ? `🔥 ${streak.current}일 연속 기록 · ${weekProgress}` : weekProgress,
   }
@@ -374,7 +374,7 @@ export function getWeeklySummary(workouts, inbodyRecords = [], settings = null) 
     countDiff,
     lines,
     encouragement:
-      workoutCount >= 3
+      workoutCount >= WEEKLY_GOAL
         ? '이번 주 정말 잘하고 있어요!'
         : workoutCount >= 1
           ? '조금씩 꾸준히 — 다음 운동도 화이팅!'

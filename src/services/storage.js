@@ -77,32 +77,35 @@ export function getKnownUsers() {
   return [...users]
 }
 
-export function addKnownUser(username) {
+export function addKnownUser(username, previousUser = null) {
   if (!username) return
   const trimmed = username.trim()
-  const users = getKnownUsers()
-  if (users.includes(trimmed)) return
-  localStorage.setItem(KNOWN_USERS_KEY, JSON.stringify([...users, trimmed]))
+  const users = new Set(getKnownUsers())
+  users.add(trimmed)
+  if (previousUser) users.add(previousUser.trim())
+  localStorage.setItem(KNOWN_USERS_KEY, JSON.stringify([...users]))
 }
 
-function readLocalBundle(username) {
-  const keys = []
-  if (username) keys.push(`workout_tracker_data_${username}`)
-  // 예전 단일 localStorage 키 — 최초 1회만, 최초 로그인 사용자에게만 이전
-  if (!localStorage.getItem(LEGACY_MIGRATED_KEY)) {
-    keys.push(LEGACY_KEY)
+function readUserLocalBundle(username) {
+  if (!username) return null
+  const key = `workout_tracker_data_${username}`
+  const raw = localStorage.getItem(key)
+  if (!raw) return null
+  try {
+    return { key, data: JSON.parse(raw) }
+  } catch {
+    return null
   }
+}
 
-  for (const key of keys) {
-    const raw = localStorage.getItem(key)
-    if (!raw) continue
-    try {
-      return { key, data: JSON.parse(raw) }
-    } catch {
-      /* ignore */
-    }
+function readLegacyBundle() {
+  const raw = localStorage.getItem(LEGACY_KEY)
+  if (!raw) return null
+  try {
+    return { key: LEGACY_KEY, data: JSON.parse(raw) }
+  } catch {
+    return null
   }
-  return null
 }
 
 async function ready(username) {
@@ -112,9 +115,9 @@ async function ready(username) {
 
 /**
  * Firebase를 유일한 저장소로 사용.
- * 로그인 시 클라우드가 비어 있고 로컬에 예전 데이터가 있으면 한 번만 업로드.
+ * allowLegacyImport: true — 로그인 화면에서 처음 들어올 때만 (예전 localStorage 1회 이전)
  */
-export async function bootstrapUser(username) {
+export async function bootstrapUser(username, { allowLegacyImport = false } = {}) {
   await ready(username)
 
   await setDoc(
@@ -145,19 +148,26 @@ export async function bootstrapUser(username) {
     return { migrated: false }
   }
 
-  const local = readLocalBundle(username)
-  if (!local?.data) {
-    await setDoc(settingsRef(username), getDefaultSettings())
+  const userLocal = readUserLocalBundle(username)
+  if (userLocal?.data) {
+    await importBundle(username, userLocal.data)
     localStorage.setItem(migratedFlag, 'true')
-    return { migrated: false }
+    return { migrated: true, from: userLocal.key }
   }
 
-  await importBundle(username, local.data)
-  localStorage.setItem(migratedFlag, 'true')
-  if (local.key === LEGACY_KEY) {
-    localStorage.setItem(LEGACY_MIGRATED_KEY, 'true')
+  if (allowLegacyImport && !localStorage.getItem(LEGACY_MIGRATED_KEY)) {
+    const legacy = readLegacyBundle()
+    if (legacy?.data) {
+      await importBundle(username, legacy.data)
+      localStorage.setItem(migratedFlag, 'true')
+      localStorage.setItem(LEGACY_MIGRATED_KEY, 'true')
+      return { migrated: true, from: LEGACY_KEY }
+    }
   }
-  return { migrated: true, from: local.key }
+
+  await setDoc(settingsRef(username), getDefaultSettings())
+  localStorage.setItem(migratedFlag, 'true')
+  return { migrated: false }
 }
 
 export async function getSettings(username) {
@@ -386,6 +396,29 @@ export async function resetSettings(username) {
   const defaults = getDefaultSettings()
   await saveSettings(username, defaults)
   return defaults
+}
+
+/** 운동·인바디·설정 전체 삭제 (잘못 이전된 데이터 정리용) */
+export async function clearUserData(username) {
+  await ready(username)
+  const [workoutsSnap, inbodySnap] = await Promise.all([
+    getDocs(workoutsCol(username)),
+    getDocs(inbodyCol(username)),
+  ])
+
+  const refs = [
+    ...workoutsSnap.docs.map((d) => d.ref),
+    ...inbodySnap.docs.map((d) => d.ref),
+  ]
+
+  for (let i = 0; i < refs.length; i += 400) {
+    const batch = writeBatch(db)
+    refs.slice(i, i + 400).forEach((ref) => batch.delete(ref))
+    await batch.commit()
+  }
+
+  await setDoc(settingsRef(username), getDefaultSettings())
+  return true
 }
 
 export { getDefaultData }

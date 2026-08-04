@@ -27,6 +27,7 @@ import { PageHeader } from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
 import { clearOnboardingSeen } from '../lib/onboarding'
 import {
+  clearUserData,
   exportBundle,
   getSettings,
   importBundle,
@@ -371,6 +372,30 @@ export default function SettingsPage() {
               }}
             >
               <Button block>루틴 설정 초기화</Button>
+            </Popconfirm>
+            <Popconfirm
+              title={`"${user}" 사용자의 운동·인바디 기록을 모두 삭제할까요?`}
+              description="Firebase에 저장된 이 사용자 데이터만 삭제됩니다. 되돌릴 수 없습니다."
+              okText="전체 삭제"
+              cancelText="취소"
+              okButtonProps={{ danger: true }}
+              onConfirm={async () => {
+                setBusy(true)
+                try {
+                  await clearUserData(user)
+                  const defaults = await getSettings(user)
+                  setSettings(defaults)
+                  message.success('기록이 삭제되었습니다. 홈에서 확인해 주세요.')
+                } catch (err) {
+                  modal.error({ title: '삭제 실패', content: err.message })
+                } finally {
+                  setBusy(false)
+                }
+              }}
+            >
+              <Button block danger disabled={busy}>
+                이 사용자 기록 전체 삭제
+              </Button>
             </Popconfirm>
           </Space>
         </Card>

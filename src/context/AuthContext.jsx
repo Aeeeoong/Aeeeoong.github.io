@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
   bootstrapUser,
   clearCurrentUser,
@@ -17,6 +17,15 @@ export function AuthProvider({ children }) {
   const [syncError, setSyncError] = useState(null)
   const [migrationNote, setMigrationNote] = useState(null)
   const [knownUsers, setKnownUsers] = useState(() => getKnownUsers())
+  const allowLegacyImportRef = useRef(false)
+
+  useEffect(() => {
+    const current = getCurrentUser()
+    if (current) {
+      addKnownUser(current)
+      setKnownUsers(getKnownUsers())
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -29,7 +38,9 @@ export function AuthProvider({ children }) {
       setBootstrapping(true)
       setSyncError(null)
       try {
-        const result = await bootstrapUser(user)
+        const allowLegacy = allowLegacyImportRef.current
+        allowLegacyImportRef.current = false
+        const result = await bootstrapUser(user, { allowLegacyImport: allowLegacy })
         if (cancelled) return
         if (result.migrated) {
           setMigrationNote('로컬에 있던 예전 데이터를 Firebase로 이전했습니다.')
@@ -55,6 +66,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (username) => {
     const name = username.trim()
+    allowLegacyImportRef.current = true
     setCurrentUser(name)
     addKnownUser(name)
     setKnownUsers(getKnownUsers())
@@ -65,11 +77,12 @@ export function AuthProvider({ children }) {
     (username) => {
       const name = username.trim()
       if (!name || name === user) return false
+      allowLegacyImportRef.current = false
+      addKnownUser(name, user)
+      setKnownUsers(getKnownUsers())
       setBootstrapping(true)
       setReady(false)
       setCurrentUser(name)
-      addKnownUser(name)
-      setKnownUsers(getKnownUsers())
       setMigrationNote(null)
       setSyncError(null)
       sessionStorage.setItem('user_switch_pending', '1')

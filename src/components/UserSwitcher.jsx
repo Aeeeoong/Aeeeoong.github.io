@@ -22,7 +22,13 @@ export default function UserSwitcher() {
   const displayUsers = useMemo(() => {
     const names = new Set(knownUsers)
     if (user) names.add(user)
-    return [...names]
+    const list = [...names]
+    list.sort((a, b) => {
+      if (a === user) return -1
+      if (b === user) return 1
+      return a.localeCompare(b, 'ko')
+    })
+    return list
   }, [knownUsers, user])
 
   if (!user) return null

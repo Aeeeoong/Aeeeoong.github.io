@@ -38,6 +38,21 @@ export function getExerciseMetrics(exercise) {
   }
 }
 
+/** Epley 공식 — UI에는 "예상 1회"로만 표시 */
+export function estimateOneRepMax(weight, reps) {
+  const w = Number(weight)
+  const r = Number(reps)
+  if (!w || w <= 0 || !r || r <= 0) return null
+  if (r === 1) return w
+  return w * (1 + r / 30)
+}
+
+export function getExerciseEstimated1RM(exercise) {
+  const m = getExerciseMetrics(exercise)
+  if (!m?.maxWeight || !m.reps) return null
+  return estimateOneRepMax(m.maxWeight, m.reps)
+}
+
 export function isExerciseFilled(exercise) {
   if (exercise.comment?.trim()) return true
   if (exercise.mode === 'simple') {
@@ -319,12 +334,12 @@ export function getWeeklySummary(workouts, inbodyRecords = []) {
   }
 
   const improvement = findWeeklyImprovement(thisWeek, lastWeek)
-  const weightLine = getWeeklyWeightLine(inbodyRecords, weekStart, lastWeekStart)
+  const bestLift = findWeeklyBestLift(thisWeek)
 
   const lines = [countMessage]
   if (busiestLine) lines.push(busiestLine)
   if (improvement) lines.push(improvement)
-  if (weightLine) lines.push(weightLine)
+  if (bestLift) lines.push(bestLift)
 
   return {
     weekStart,
@@ -383,33 +398,35 @@ function findWeeklyImprovement(thisWeek, lastWeek) {
 
   const firstNew = Object.keys(thisBest).find((name) => lastBest[name] == null)
   if (firstNew) {
-    return `${firstNew} 이번 주 최고 ${thisBest[firstNew]}kg — 첫 기록이에요!`
+    return `${firstNew} 이번 주 ${thisBest[firstNew]}kg — 지난주 기록 없음`
   }
 
   return null
 }
 
-function getWeeklyWeightLine(inbodyRecords, weekStart, lastWeekStart) {
-  if (!inbodyRecords.length) return null
+/** 이번 주 예상 1회 최고 (요약 전용, 1RM 용어 노출 안 함) */
+function findWeeklyBestLift(thisWeek) {
+  let best = null
 
-  const thisWeekRecords = inbodyRecords.filter((r) => r.date >= weekStart)
-  const lastWeekRecords = inbodyRecords.filter(
-    (r) => r.date >= addDays(lastWeekStart, 0) && r.date < weekStart,
-  )
+  for (const workout of thisWeek) {
+    for (const ex of workout.exercises || []) {
+      const m = getExerciseMetrics(ex)
+      const e1rm = getExerciseEstimated1RM(ex)
+      if (!e1rm || !m?.maxWeight || !m.reps) continue
 
-  const latest = thisWeekRecords[0] || inbodyRecords[0]
-  const prev = lastWeekRecords[0] || inbodyRecords[1]
-  if (!latest?.weight) return null
-
-  let line = `체중 ${Number(latest.weight).toFixed(1)}kg`
-  if (prev?.weight) {
-    const diff = Number(latest.weight) - Number(prev.weight)
-    if (Math.abs(diff) >= 0.1) {
-      const sign = diff > 0 ? '+' : ''
-      line += ` (지난주 ${sign}${diff.toFixed(1)}kg)`
+      if (!best || e1rm > best.e1rm) {
+        best = {
+          name: ex.name,
+          e1rm,
+          weight: m.maxWeight,
+          reps: m.reps,
+        }
+      }
     }
   }
-  return line
+
+  if (!best) return null
+  return `💪 이번 주 베스트: ${best.name} — 예상 1회 ${best.e1rm.toFixed(1)}kg (${best.weight}kg×${best.reps}회)`
 }
 
 /** 운동별 역대 최고 */

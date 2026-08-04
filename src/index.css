@@ -1186,3 +1186,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .dashboard-recent-card {
   margin-bottom: 0;
 }
+
+.dashboard-streak-banner {
+  background: var(--gradient-primary);
+  color: #fff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.dashboard-streak-main {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.dashboard-streak-sub {
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  opacity: 0.88;
+}

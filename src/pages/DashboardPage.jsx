@@ -102,50 +102,43 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            <Card size="small" className="summary-card dashboard-streak-card" style={{ marginBottom: 16 }}>
-              <Flex justify="space-between" align="center" wrap="gap">
-                <div>
-                  <Text strong style={{ fontSize: 16 }}>
-                    {streak.message}
-                  </Text>
-                  {streak.longest > 1 && (
-                    <div>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        최장 {streak.longest}일 연속
-                      </Text>
-                    </div>
-                  )}
-                </div>
-                <Row gutter={[12, 16]} style={{ flex: 1, minWidth: 200 }}>
-                  <Col xs={12} sm={6}>
-                    <Statistic title="총 운동" value={workouts.length} />
-                  </Col>
-                  <Col xs={12} sm={6}>
-                    <Statistic
-                      title="7일"
-                      value={workouts.filter((w) => {
-                        const d = new Date()
-                        d.setDate(d.getDate() - 7)
-                        return new Date(w.date) >= d
-                      }).length}
-                    />
-                  </Col>
-                  <Col xs={12} sm={6}>
-                    <Statistic
-                      title="체중"
-                      value={latestInbody ? formatNumber(latestInbody.weight) : '-'}
-                      suffix={latestInbody ? 'kg' : ''}
-                    />
-                  </Col>
-                  <Col xs={12} sm={6}>
-                    <Statistic
-                      title="골격근"
-                      value={latestInbody ? formatNumber(latestInbody.muscleMass) : '-'}
-                      suffix={latestInbody ? 'kg' : ''}
-                    />
-                  </Col>
-                </Row>
-              </Flex>
+            <div className="dashboard-streak-banner">
+              <div className="dashboard-streak-main">{streak.message}</div>
+              {streak.longest > 1 && (
+                <div className="dashboard-streak-sub">최장 {streak.longest}일 연속</div>
+              )}
+            </div>
+
+            <Card size="small" className="summary-card" style={{ marginBottom: 16 }}>
+              <Row gutter={[12, 16]}>
+                <Col xs={12} sm={6}>
+                  <Statistic title="총 운동" value={workouts.length} />
+                </Col>
+                <Col xs={12} sm={6}>
+                  <Statistic
+                    title="7일"
+                    value={workouts.filter((w) => {
+                      const d = new Date()
+                      d.setDate(d.getDate() - 7)
+                      return new Date(w.date) >= d
+                    }).length}
+                  />
+                </Col>
+                <Col xs={12} sm={6}>
+                  <Statistic
+                    title="체중"
+                    value={latestInbody ? formatNumber(latestInbody.weight) : '-'}
+                    suffix={latestInbody ? 'kg' : ''}
+                  />
+                </Col>
+                <Col xs={12} sm={6}>
+                  <Statistic
+                    title="골격근"
+                    value={latestInbody ? formatNumber(latestInbody.muscleMass) : '-'}
+                    suffix={latestInbody ? 'kg' : ''}
+                  />
+                </Col>
+              </Row>
             </Card>
 
             <Card

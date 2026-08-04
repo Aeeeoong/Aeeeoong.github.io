@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   App,
+  Alert,
   Button,
   Card,
   Empty,
@@ -24,6 +25,8 @@ const { Text } = Typography
 export default function HistoryPage() {
   const { user } = useAuth()
   const { message, modal } = App.useApp()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const dateFilter = searchParams.get('date') || ''
   const [filter, setFilter] = useState('')
   const [routines, setRoutines] = useState([])
   const [settings, setSettings] = useState(null)
@@ -54,6 +57,11 @@ export default function HistoryPage() {
     load(filter)
   }, [user, filter])
 
+  const filteredWorkouts = useMemo(() => {
+    if (!dateFilter) return workouts
+    return workouts.filter((w) => w.date === dateFilter)
+  }, [workouts, dateFilter])
+
   async function handleDelete(id) {
     try {
       await deleteWorkout(user, id)
@@ -64,10 +72,29 @@ export default function HistoryPage() {
     }
   }
 
+  function clearDateFilter() {
+    searchParams.delete('date')
+    setSearchParams(searchParams)
+  }
+
   return (
     <>
       <PageHeader title="운동 내역" />
       <main className="container">
+        {dateFilter && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message={`${displayDate(dateFilter)} 기록만 보는 중`}
+            action={
+              <Button size="small" type="link" onClick={clearDateFilter}>
+                전체 보기
+              </Button>
+            }
+          />
+        )}
+
         <Card style={{ marginBottom: 16 }}>
           <Select
             style={{ width: '100%' }}
@@ -85,17 +112,21 @@ export default function HistoryPage() {
           <div className="loading">
             <Spin size="large" />
           </div>
-        ) : workouts.length === 0 ? (
+        ) : filteredWorkouts.length === 0 ? (
           <Card>
-            <Empty description="운동 기록이 없습니다">
+            <Empty
+              description={
+                dateFilter ? `${displayDate(dateFilter)} 운동 기록이 없습니다` : '운동 기록이 없습니다'
+              }
+            >
               <Link to="/record">
-                <Button type="primary">첫 운동 기록하기</Button>
+                <Button type="primary">운동 기록하기</Button>
               </Link>
             </Empty>
           </Card>
         ) : (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            {workouts.map((workout) => (
+            {filteredWorkouts.map((workout) => (
               <Card
                 key={workout.id}
                 title={

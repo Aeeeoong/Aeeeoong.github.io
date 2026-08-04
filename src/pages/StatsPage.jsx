@@ -33,7 +33,6 @@ import {
 import {
   getExerciseSummary,
   getPersonalBests,
-  getWorkoutDateSet,
 } from '../lib/workoutInsights'
 import { displayDate, formatNumber } from '../lib/utils'
 
@@ -97,7 +96,6 @@ export default function StatsPage() {
     [settings, routine],
   )
 
-  const workoutDates = useMemo(() => getWorkoutDateSet(workouts), [workouts])
   const personalBests = useMemo(() => getPersonalBests(workouts, settings), [workouts, settings])
   const exerciseProfile = useMemo(
     () => (exercise && settings ? getExerciseProfile(exercise, settings) : null),
@@ -150,11 +148,7 @@ export default function StatsPage() {
             backgroundColor: meta.fill,
             tension: 0.3,
             fill: true,
-            pointRadius: inbody.map((r) => (workoutDates.has(r.date) ? 8 : 5)),
-            pointBackgroundColor: inbody.map((r) =>
-              workoutDates.has(r.date) ? '#6366f1' : meta.border,
-            ),
-            pointBorderWidth: inbody.map((r) => (workoutDates.has(r.date) ? 2 : 1)),
+            pointRadius: 5,
           },
         ],
       },
@@ -162,20 +156,9 @@ export default function StatsPage() {
         responsive: true,
         maintainAspectRatio: false,
         scales: { y: { min: range.min, max: range.max } },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              afterLabel(ctx) {
-                const record = inbody[ctx.dataIndex]
-                if (workoutDates.has(record.date)) return '🏋️ 운동한 날'
-                return ''
-              },
-            },
-          },
-        },
       },
     }
-  }, [inbody, tab, workoutDates])
+  }, [inbody, tab])
 
   const exerciseChart = useMemo(() => {
     if (progress.length === 0) return null
@@ -280,9 +263,6 @@ export default function StatsPage() {
           }
           style={{ marginBottom: 16 }}
         >
-          <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
-            ● 큰 점 = 운동한 날
-          </Text>
           <div className="chart-container">
             {inbodyChart ? (
               <Line data={inbodyChart.data} options={inbodyChart.options} />

@@ -5,11 +5,13 @@ function draftKey(user) {
 }
 
 export function saveRecordDraft(user, { date, type, exercises }) {
-  if (!user) return
+  if (!user) return null
+  const savedAt = Date.now()
   localStorage.setItem(
     draftKey(user),
-    JSON.stringify({ date, type, exercises, savedAt: Date.now() }),
+    JSON.stringify({ date, type, exercises, savedAt }),
   )
+  return savedAt
 }
 
 export function loadRecordDraft(user) {
@@ -28,6 +30,7 @@ export function clearRecordDraft(user) {
 }
 
 export function hasDraftContent(exercises) {
+  if (!exercises?.length) return false
   return exercises.some((ex) => {
     if (ex.comment?.trim()) return true
     if (ex.mode === 'simple') {
@@ -36,4 +39,13 @@ export function hasDraftContent(exercises) {
     const hasSet = (ex.setsDetail || []).some((s) => s.weight != null || s.reps != null)
     return hasSet
   })
+}
+
+export function formatDraftTime(savedAt) {
+  if (!savedAt) return ''
+  return new Date(savedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+}
+
+export function isValidDraft(draft) {
+  return Boolean(draft?.exercises?.length && hasDraftContent(draft.exercises))
 }

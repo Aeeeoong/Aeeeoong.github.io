@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   App,
+  Alert,
   Button,
   Card,
   Flex,
@@ -14,7 +15,7 @@ import {
   Space,
   Typography,
 } from 'antd'
-import { DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons'
+import { DeleteOutlined, HolderOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
 import DateField from '../components/DateField'
 import { useAuth } from '../context/AuthContext'
@@ -22,7 +23,9 @@ import { addWorkout, getSettings, getWorkouts } from '../services/storage'
 import { emptyExercise, serializeExercises } from '../lib/workoutForm'
 import {
   clearRecordDraft,
+  formatDraftTime,
   hasDraftContent,
+  isValidDraft,
   loadRecordDraft,
   saveRecordDraft,
 } from '../lib/recordDraft'
@@ -73,29 +76,54 @@ export default function RecordPage() {
   const [exercises, setExercises] = useState([])
   const [placeholders, setPlaceholders] = useState({})
   const [saving, setSaving] = useState(false)
-  const [draftChecked, setDraftChecked] = useState(false)
-  const [restoredFromDraft, setRestoredFromDraft] = useState(false)
+  const [draftSaving, setDraftSaving] = useState(false)
+  /** pending: 임시저장 확인 대기 | restored: 불러옴 | dismissed: 새로 시작 | none: 임시저장 없음 */
+  const [draftStatus, setDraftStatus] = useState('pending')
   const [draftSavedAt, setDraftSavedAt] = useState(null)
   const [dragIndex, setDragIndex] = useState(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
   const touchDragRef = useRef(null)
+  const draftSnapshotRef = useRef({ date, type, exercises, user })
 
   useEffect(() => {
-    getSettings(user).then((s) => {
+    draftSnapshotRef.current = { date, type, exercises, user }
+  }, [date, type, exercises, user])
+
+  useEffect(() => {
+    let cancelled = false
+    async function init() {
+      const s = await getSettings(user)
+      if (cancelled) return
       setSettings(s)
-      setType(s.routineOrder[0])
-    })
+
+      const draft = loadRecordDraft(user)
+      if (isValidDraft(draft)) {
+        setDraftSavedAt(draft.savedAt)
+        return
+      }
+
+      setDraftStatus('none')
+      setType(s.routineOrder[0] || '')
+    }
+    init()
+    return () => {
+      cancelled = true
+    }
   }, [user])
 
   useEffect(() => {
-    if (!settings || draftChecked) return
-    setDraftChecked(true)
+    if (!settings || draftStatus !== 'pending') return
+
     const draft = loadRecordDraft(user)
-    if (!draft?.exercises?.length || !hasDraftContent(draft.exercises)) return
+    if (!isValidDraft(draft)) {
+      setDraftStatus('none')
+      if (!type) setType(settings.routineOrder[0] || '')
+      return
+    }
 
     modal.confirm({
       title: '임시저장된 기록이 있습니다',
-      content: `${draft.date} · ${draft.type} 루틴 — 이어서 작성할까요?`,
+      content: `${draft.date} · ${draft.type} 루틴 (${formatDraftTime(draft.savedAt)}) — 이어서 작성할까요?`,
       okText: '불러오기',
       cancelText: '새로 시작',
       onOk: () => {
@@ -103,18 +131,27 @@ export default function RecordPage() {
         setType(draft.type)
         setExercises(draft.exercises)
         setDraftSavedAt(draft.savedAt)
-        setRestoredFromDraft(true)
+        setDraftStatus('restored')
       },
-      onCancel: () => clearRecordDraft(user),
+      onCancel: () => {
+        clearRecordDraft(user)
+        setDraftSavedAt(null)
+        setDraftStatus('dismissed')
+        setType(settings.routineOrder[0] || '')
+      },
     })
-  }, [settings, draftChecked, user, modal])
+  }, [settings, draftStatus, user, modal, type])
 
   useEffect(() => {
-    if (!settings || !type || restoredFromDraft) return
+    if (!settings || !type) return
+    if (draftStatus === 'pending' || draftStatus === 'restored') return
+
+    let cancelled = false
     async function setup() {
       const names = settings.exercises[type] || []
       setExercises(names.map((name) => emptyExercise(name)))
       const recent = await getWorkouts(user)
+      if (cancelled) return
       const recentWorkout = recent.find((w) => w.type === type)
       const map = {}
       names.forEach((name) => {
@@ -141,18 +178,45 @@ export default function RecordPage() {
       setPlaceholders(map)
     }
     setup()
-  }, [settings, type, user, restoredFromDraft])
+    return () => {
+      cancelled = true
+    }
+  }, [settings, type, user, draftStatus])
 
   useEffect(() => {
-    if (!user || !settings || exercises.length === 0) return
-    if (!hasDraftContent(exercises)) return
+    if (!user || !settings || draftStatus === 'pending') return
+    if (exercises.length === 0 || !hasDraftContent(exercises)) return
 
     const timer = setTimeout(() => {
-      saveRecordDraft(user, { date, type, exercises })
-      setDraftSavedAt(Date.now())
-    }, 600)
+      const savedAt = saveRecordDraft(user, { date, type, exercises })
+      if (savedAt) setDraftSavedAt(savedAt)
+    }, 800)
     return () => clearTimeout(timer)
-  }, [user, settings, date, type, exercises])
+  }, [user, settings, date, type, exercises, draftStatus])
+
+  useEffect(() => {
+    function flushDraft() {
+      const snap = draftSnapshotRef.current
+      if (!snap.user || !snap.exercises?.length || !hasDraftContent(snap.exercises)) return
+      saveRecordDraft(snap.user, {
+        date: snap.date,
+        type: snap.type,
+        exercises: snap.exercises,
+      })
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === 'hidden') flushDraft()
+    }
+
+    window.addEventListener('pagehide', flushDraft)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      flushDraft()
+      window.removeEventListener('pagehide', flushDraft)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [])
 
   const routineOptions = (settings?.routineOrder || []).map((name) => ({ value: name, label: name }))
 
@@ -234,8 +298,12 @@ export default function RecordPage() {
   }
 
   function handleTypeChange(nextType) {
-    setRestoredFromDraft(false)
+    setDraftStatus('dismissed')
     setType(nextType)
+  }
+
+  function handleDateChange(nextDate) {
+    setDate(nextDate)
   }
 
   function addExercise() {
@@ -263,6 +331,21 @@ export default function RecordPage() {
       cancelText: '취소',
       onOk: () => setExercises((prev) => [...prev, emptyExercise(selected)]),
     })
+  }
+
+  function handleDraftSave() {
+    if (exercises.length === 0) {
+      message.warning('저장할 운동이 없습니다.')
+      return
+    }
+    setDraftSaving(true)
+    try {
+      const savedAt = saveRecordDraft(user, { date, type, exercises })
+      setDraftSavedAt(savedAt)
+      message.success('임시저장되었습니다. 나중에 이어서 작성할 수 있어요.')
+    } finally {
+      setDraftSaving(false)
+    }
   }
 
   async function handleSave() {
@@ -300,9 +383,8 @@ export default function RecordPage() {
     })
   }
 
-  const draftTimeLabel =
-    draftSavedAt &&
-    new Date(draftSavedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+  const draftTimeLabel = formatDraftTime(draftSavedAt)
+  const canDraftSave = exercises.length > 0
 
   return (
     <>
@@ -317,18 +399,22 @@ export default function RecordPage() {
       <main className="container">
         <Card title="오늘의 운동">
           {draftTimeLabel && (
-            <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                임시저장됨 · {draftTimeLabel}
-              </Text>
-              <Button type="link" size="small" danger onClick={clearDraft}>
-                임시저장 삭제
-              </Button>
-            </Flex>
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message={`임시저장됨 · ${draftTimeLabel}`}
+              description="입력 중 자동 저장됩니다. Firebase 저장 전까지 이 기기에 보관돼요."
+              action={
+                <Button size="small" danger type="text" onClick={clearDraft}>
+                  삭제
+                </Button>
+              }
+            />
           )}
           <Form layout="vertical">
             <Form.Item label="운동 날짜">
-              <DateField value={date} onChange={setDate} />
+              <DateField value={date} onChange={handleDateChange} />
             </Form.Item>
             <Form.Item label="운동 루틴">
               <Select
@@ -476,9 +562,23 @@ export default function RecordPage() {
               운동 추가
             </Button>
 
-            <Button type="primary" size="large" block loading={saving} onClick={handleSave}>
-              운동 기록 저장하기
-            </Button>
+            <Flex gap={8} vertical={false} style={{ width: '100%' }}>
+              <Button
+                block
+                icon={<SaveOutlined />}
+                loading={draftSaving}
+                disabled={!canDraftSave}
+                onClick={handleDraftSave}
+              >
+                임시저장
+              </Button>
+              <Button type="primary" block loading={saving} onClick={handleSave}>
+                Firebase 저장
+              </Button>
+            </Flex>
+            <Text type="secondary" style={{ fontSize: 12, display: 'block', textAlign: 'center' }}>
+              임시저장은 이 기기에만 보관 · Firebase 저장 시 최종 반영
+            </Text>
           </Space>
         </Card>
       </main>

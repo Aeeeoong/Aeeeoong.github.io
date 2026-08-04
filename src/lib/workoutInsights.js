@@ -588,5 +588,5 @@ export function getExerciseSummary(progress, exerciseName, bests, profile) {
 export function formatWeekRangeLabel(weekStart, weekEnd) {
   const s = new Date(`${weekStart}T12:00:00`)
   const e = new Date(`${weekEnd}T12:00:00`)
-  return `${s.getMonth() + 1}/${s.getDate()} ~ ${e.getMonth() + 1}/${e.getDate()}`
+  return `${s.getMonth() + 1}/${s.getDate()} ~ ${e.getMonth() + 1}/${e.getDate()} (월~일)`
 }

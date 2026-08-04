@@ -1,7 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App as AntApp, ConfigProvider, theme } from 'antd'
-import koKR from 'antd/locale/ko_KR'
+import './lib/dayjsConfig.js'
+import antdLocale from './lib/antdLocale.js'
 import './index.css'
 import App from './App.jsx'
 
@@ -10,7 +11,7 @@ document.documentElement.setAttribute('data-theme', 'dark')
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ConfigProvider
-      locale={koKR}
+      locale={antdLocale}
       theme={{
         algorithm: theme.darkAlgorithm,
         token: {

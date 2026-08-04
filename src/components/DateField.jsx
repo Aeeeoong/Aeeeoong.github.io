@@ -1,9 +1,6 @@
 import { DatePicker } from 'antd'
-import dayjs from 'dayjs'
-import 'dayjs/locale/ko'
-import locale from 'antd/es/date-picker/locale/ko_KR'
-
-dayjs.locale('ko')
+import dayjs from '../lib/dayjsConfig'
+import { datePickerLocale } from '../lib/antdLocale'
 
 /**
  * YYYY-MM-DD 문자열을 주고받는 antd DatePicker
@@ -11,7 +8,7 @@ dayjs.locale('ko')
 export default function DateField({ value, onChange, style, ...rest }) {
   return (
     <DatePicker
-      locale={locale}
+      locale={datePickerLocale}
       value={value ? dayjs(value) : null}
       onChange={(d) => onChange(d ? d.format('YYYY-MM-DD') : '')}
       format="YYYY년 MM월 DD일"

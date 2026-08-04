@@ -23,6 +23,7 @@ import {
   ExerciseCompareHint,
   ExerciseDoneBadge,
   PersonalBestBadge,
+  PersonalBestCompareHint,
 } from '../components/ExerciseHints'
 import { useAuth } from '../context/AuthContext'
 import { addWorkout, getSettings, getWorkouts } from '../services/storage'
@@ -567,6 +568,12 @@ export default function RecordPage() {
                       {prev && (
                         <ExerciseCompareHint current={ex} previous={prev.exercise} />
                       )}
+                      {personalBests[ex.name]?.maxWeight > 0 && (
+                        <PersonalBestCompareHint
+                          current={ex}
+                          bestEntry={personalBests[ex.name]}
+                        />
+                      )}
                     </>
                   ) : (
                     <>
@@ -623,6 +630,12 @@ export default function RecordPage() {
                       </Space>
                       {prev && (
                         <ExerciseCompareHint current={ex} previous={prev.exercise} />
+                      )}
+                      {personalBests[ex.name]?.maxWeight > 0 && (
+                        <PersonalBestCompareHint
+                          current={ex}
+                          bestEntry={personalBests[ex.name]}
+                        />
                       )}
                     </>
                   )}

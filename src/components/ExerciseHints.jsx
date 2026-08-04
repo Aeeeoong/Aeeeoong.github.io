@@ -1,5 +1,5 @@
 import { Tag, Typography } from 'antd'
-import { compareWithPrevious } from '../lib/workoutInsights'
+import { compareWithPersonalBest, compareWithPrevious } from '../lib/workoutInsights'
 
 const { Text } = Typography
 
@@ -21,6 +21,25 @@ export function ExerciseCompareHint({ current, previous }) {
           {p.label} {p.text}
         </Tag>
       ))}
+    </div>
+  )
+}
+
+export function PersonalBestCompareHint({ current, bestEntry }) {
+  const hint = compareWithPersonalBest(current, bestEntry)
+  if (!hint) return null
+
+  const color =
+    hint.status === 'beat' ? 'gold' : hint.status === 'tie' ? 'processing' : 'default'
+
+  return (
+    <div className="exercise-compare-hint">
+      <Text type="secondary" style={{ fontSize: 12 }}>
+        역대 최고{' '}
+      </Text>
+      <Tag color={color} style={{ marginInlineEnd: 4 }}>
+        {hint.status === 'beat' ? `🏆 ${hint.label}` : hint.label}
+      </Tag>
     </div>
   )
 }

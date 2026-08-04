@@ -457,6 +457,36 @@ export function checkPersonalBest(exerciseName, currentExercise, bests) {
   }
 }
 
+/** 현재 입력 vs 역대 최고 */
+export function compareWithPersonalBest(currentExercise, bestEntry) {
+  const cur = getExerciseMetrics(currentExercise)
+  if (!cur?.maxWeight || !bestEntry?.maxWeight) return null
+
+  const diff = cur.maxWeight - bestEntry.maxWeight
+  if (diff > 0) {
+    return {
+      status: 'beat',
+      best: bestEntry.maxWeight,
+      diff,
+      label: `역대 ${bestEntry.maxWeight}kg → ${cur.maxWeight}kg (+${diff.toFixed(1)}kg)`,
+    }
+  }
+  if (Math.abs(diff) < 0.05) {
+    return {
+      status: 'tie',
+      best: bestEntry.maxWeight,
+      label: `${bestEntry.maxWeight}kg · 역대 최고와 동일`,
+    }
+  }
+  const remaining = bestEntry.maxWeight - cur.maxWeight
+  return {
+    status: 'below',
+    best: bestEntry.maxWeight,
+    remaining,
+    label: `${bestEntry.maxWeight}kg · ${remaining.toFixed(1)}kg 남음`,
+  }
+}
+
 export function getWorkoutDateSet(workouts) {
   return new Set(workouts.map((w) => w.date))
 }

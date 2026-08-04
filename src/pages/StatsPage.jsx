@@ -22,6 +22,7 @@ import {
   getWorkouts,
 } from '../services/storage'
 import {
+  chartValueLabel,
   formatExerciseValue,
   getExerciseProfile,
   personalBestLabel,
@@ -170,18 +171,22 @@ export default function StatsPage() {
 
   const exerciseChart = useMemo(() => {
     if (progress.length === 0) return null
+    const profile = exerciseProfile || getExerciseProfile(exercise, settings)
     const labels = progress.map((p) => {
       const d = new Date(p.date)
       return `${d.getMonth() + 1}/${d.getDate()}`
     })
-    const hasWeight = progress.some((p) => p.weight && p.weight > 0)
+    const hasWeight = progress.some((p) => p.weight != null && p.weight > 0)
     const data = hasWeight ? progress.map((p) => p.weight) : progress.map((p) => p.reps)
+    const datasetLabel = hasWeight ? chartValueLabel(exercise, profile) : `${exercise} 회수`
+    const yRange = hasWeight ? calcYRange(data) : { min: 0, max: undefined }
+
     return {
       data: {
         labels,
         datasets: [
           {
-            label: hasWeight ? `${exercise} 무게 (kg)` : `${exercise} 회수`,
+            label: datasetLabel,
             data,
             borderColor: '#8b5cf6',
             backgroundColor: 'rgba(139, 92, 246, 0.1)',
@@ -194,10 +199,32 @@ export default function StatsPage() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true } },
+        scales: {
+          y: {
+            beginAtZero: !hasWeight,
+            min: hasWeight ? yRange.min : 0,
+            max: hasWeight ? yRange.max : undefined,
+            ticks: hasWeight && usesIntegerValue(profile)
+              ? { stepSize: 1, precision: 0 }
+              : undefined,
+          },
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label(ctx) {
+                const y = ctx.parsed.y
+                if (hasWeight) {
+                  return `${datasetLabel}: ${formatExerciseValue(y, profile)}`
+                }
+                return `${datasetLabel}: ${y}회`
+              },
+            },
+          },
+        },
       },
     }
-  }, [progress, exercise])
+  }, [progress, exercise, exerciseProfile, settings])
 
   const distribution = useMemo(() => {
     const workoutsByType = {}
@@ -320,6 +347,7 @@ export default function StatsPage() {
             <Row gutter={[8, 8]}>
               {topPersonalBests.map(([name, best]) => {
                 const profile = best.profile || getExerciseProfile(name, settings)
+                const pbLabel = personalBestLabel(profile)
                 return (
                   <Col xs={12} sm={8} key={name}>
                     <Card size="small" type="inner">
@@ -327,10 +355,22 @@ export default function StatsPage() {
                       <div>
                         <Text style={{ fontSize: 18, color: 'var(--primary)' }}>
                           {formatExerciseValue(best.bestValue, profile)}
+                          {profile.unit === 'level' && (
+                            <Text type="secondary" style={{ fontSize: 14 }}>
+                              {' '}
+                              레벨
+                            </Text>
+                          )}
+                          {profile.unit === 'assist' && (
+                            <Text type="secondary" style={{ fontSize: 14 }}>
+                              {' '}
+                              보조
+                            </Text>
+                          )}
                         </Text>
                       </div>
                       <Text type="secondary" style={{ fontSize: 12 }}>
-                        {personalBestLabel(profile)}
+                        {pbLabel}
                         {best.bestDate ? ` · ${displayDate(best.bestDate)}` : ''}
                       </Text>
                     </Card>

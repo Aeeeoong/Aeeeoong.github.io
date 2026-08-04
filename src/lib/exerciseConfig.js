@@ -100,9 +100,20 @@ export function usesIntegerValue(profile) {
 }
 
 export function statisticValueSuffix(profile) {
+  if (!profile) return 'kg'
   if (profile.unit === 'level') return '레벨'
   if (profile.unit === 'assist') return '보조'
   return profile.suffix || 'kg'
+}
+
+/** 차트·축 라벨 */
+export function chartValueLabel(exerciseName, profile) {
+  if (!exerciseName) return '기록'
+  if (!profile) return `${exerciseName} 무게 (kg)`
+  if (profile.unit === 'kg') {
+    return `${exerciseName} ${profile.inputLabel} (${profile.suffix || 'kg'})`
+  }
+  return `${exerciseName} ${profile.inputLabel}`
 }
 
 export function inputNumberPropsForProfile(profile) {

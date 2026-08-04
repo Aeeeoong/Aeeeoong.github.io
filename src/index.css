@@ -1119,6 +1119,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   min-width: 0;
 }
 
+.exercise-compare-hint {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.dashboard-weekly-card .ant-typography {
+  margin-bottom: 0;
+}
+
 @media (max-width: 768px) {
   .bottom-nav .nav-label {
     display: none;

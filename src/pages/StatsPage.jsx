@@ -12,15 +12,21 @@ import {
   Filler,
 } from 'chart.js'
 import { Line, Doughnut } from 'react-chartjs-2'
-import { Card, Empty, Form, Segmented, Select } from 'antd'
+import { Card, Col, Empty, Form, Row, Segmented, Select, Statistic, Typography } from 'antd'
 import { PageHeader } from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
 import {
   getExerciseProgress,
   getInbodyRecords,
   getSettings,
-  getWorkoutStats,
+  getWorkouts,
 } from '../services/storage'
+import {
+  getExerciseSummary,
+  getPersonalBests,
+  getWorkoutDateSet,
+} from '../lib/workoutInsights'
+import { displayDate, formatNumber } from '../lib/utils'
 
 ChartJS.register(
   CategoryScale,
@@ -33,6 +39,8 @@ ChartJS.register(
   Legend,
   Filler,
 )
+
+const { Text } = Typography
 
 function calcYRange(data) {
   const values = data.filter((v) => v != null)
@@ -51,17 +59,17 @@ export default function StatsPage() {
   const { user } = useAuth()
   const [tab, setTab] = useState('weight')
   const [inbody, setInbody] = useState([])
-  const [stats, setStats] = useState(null)
+  const [workouts, setWorkouts] = useState([])
   const [settings, setSettings] = useState(null)
   const [routine, setRoutine] = useState('')
   const [exercise, setExercise] = useState('')
   const [progress, setProgress] = useState([])
 
   useEffect(() => {
-    Promise.all([getInbodyRecords(user), getWorkoutStats(user), getSettings(user)]).then(
-      ([records, s, conf]) => {
+    Promise.all([getInbodyRecords(user), getWorkouts(user), getSettings(user)]).then(
+      ([records, allWorkouts, conf]) => {
         setInbody([...records].reverse())
-        setStats(s)
+        setWorkouts(allWorkouts)
         setSettings(conf)
         const firstRoutine = conf.routineOrder[0]
         setRoutine(firstRoutine)
@@ -79,6 +87,20 @@ export default function StatsPage() {
     () => (settings && routine ? settings.exercises[routine] || [] : []),
     [settings, routine],
   )
+
+  const workoutDates = useMemo(() => getWorkoutDateSet(workouts), [workouts])
+  const personalBests = useMemo(() => getPersonalBests(workouts), [workouts])
+  const exerciseSummary = useMemo(
+    () => getExerciseSummary(progress, exercise, personalBests),
+    [progress, exercise, personalBests],
+  )
+
+  const topPersonalBests = useMemo(() => {
+    return Object.entries(personalBests)
+      .filter(([, b]) => b.maxWeight > 0)
+      .sort((a, b) => b[1].maxWeight - a[1].maxWeight)
+      .slice(0, 8)
+  }, [personalBests])
 
   const inbodyChart = useMemo(() => {
     if (inbody.length === 0) return null
@@ -105,7 +127,11 @@ export default function StatsPage() {
             backgroundColor: meta.fill,
             tension: 0.3,
             fill: true,
-            pointRadius: 5,
+            pointRadius: inbody.map((r) => (workoutDates.has(r.date) ? 8 : 5)),
+            pointBackgroundColor: inbody.map((r) =>
+              workoutDates.has(r.date) ? '#6366f1' : meta.border,
+            ),
+            pointBorderWidth: inbody.map((r) => (workoutDates.has(r.date) ? 2 : 1)),
           },
         ],
       },
@@ -113,9 +139,20 @@ export default function StatsPage() {
         responsive: true,
         maintainAspectRatio: false,
         scales: { y: { min: range.min, max: range.max } },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              afterLabel(ctx) {
+                const record = inbody[ctx.dataIndex]
+                if (workoutDates.has(record.date)) return '🏋️ 운동한 날'
+                return ''
+              },
+            },
+          },
+        },
       },
     }
-  }, [inbody, tab])
+  }, [inbody, tab, workoutDates])
 
   const exerciseChart = useMemo(() => {
     if (progress.length === 0) return null
@@ -149,15 +186,18 @@ export default function StatsPage() {
   }, [progress, exercise])
 
   const distribution = useMemo(() => {
-    if (!stats) return null
-    const types = Object.keys(stats.workoutsByType)
+    const workoutsByType = {}
+    workouts.forEach((w) => {
+      workoutsByType[w.type] = (workoutsByType[w.type] || 0) + 1
+    })
+    const types = Object.keys(workoutsByType)
     if (types.length === 0) return null
     return {
       data: {
         labels: types,
         datasets: [
           {
-            data: Object.values(stats.workoutsByType),
+            data: Object.values(workoutsByType),
             backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'],
             borderWidth: 2,
             borderColor: '#ffffff',
@@ -170,7 +210,7 @@ export default function StatsPage() {
         plugins: { legend: { position: 'bottom' } },
       },
     }
-  }, [stats])
+  }, [workouts])
 
   return (
     <>
@@ -191,6 +231,9 @@ export default function StatsPage() {
           }
           style={{ marginBottom: 16 }}
         >
+          <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+            ● 큰 점 = 운동한 날
+          </Text>
           <div className="chart-container">
             {inbodyChart ? (
               <Line data={inbodyChart.data} options={inbodyChart.options} />
@@ -200,7 +243,7 @@ export default function StatsPage() {
           </div>
         </Card>
 
-        <Card title="운동별 증량 추이" style={{ marginBottom: 16 }}>
+        <Card title="운동별 기록" style={{ marginBottom: 16 }}>
           <Form layout="vertical">
             <Form.Item label="루틴">
               <Select
@@ -222,16 +265,63 @@ export default function StatsPage() {
               />
             </Form.Item>
           </Form>
+
+          {exerciseSummary ? (
+            <Row gutter={[12, 16]} style={{ marginBottom: 16 }}>
+              <Col xs={8}>
+                <Statistic
+                  title="역대 최고"
+                  value={formatNumber(exerciseSummary.allTimeBest)}
+                  suffix="kg"
+                />
+              </Col>
+              <Col xs={8}>
+                <Statistic title="기록 횟수" value={exerciseSummary.totalSessions} suffix="번" />
+              </Col>
+              <Col xs={8}>
+                <Statistic title="총 횟수" value={exerciseSummary.totalReps} suffix="회" />
+              </Col>
+            </Row>
+          ) : (
+            <Empty description="선택한 운동의 기록이 없습니다" style={{ marginBottom: 16 }} />
+          )}
+
           <div className="chart-container">
             {exerciseChart ? (
               <Line data={exerciseChart.data} options={exerciseChart.options} />
             ) : (
-              <Empty description="선택한 운동의 기록이 없습니다" />
+              <Empty description="차트를 그릴 데이터가 없습니다" />
             )}
           </div>
         </Card>
 
-        <Card title="운동 분포">
+        <Card title="🏆 역대 최고 기록" style={{ marginBottom: 16 }}>
+          {topPersonalBests.length === 0 ? (
+            <Empty description="아직 기록이 없습니다" />
+          ) : (
+            <Row gutter={[8, 8]}>
+              {topPersonalBests.map(([name, best]) => (
+                <Col xs={12} sm={8} key={name}>
+                  <Card size="small" type="inner">
+                    <Text strong>{name}</Text>
+                    <div>
+                      <Text style={{ fontSize: 18, color: 'var(--primary)' }}>
+                        {formatNumber(best.maxWeight)}kg
+                      </Text>
+                    </div>
+                    {best.maxWeightDate && (
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {displayDate(best.maxWeightDate)}
+                      </Text>
+                    )}
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          )}
+        </Card>
+
+        <Card title="루틴별 운동 횟수">
           <div className="chart-container">
             {distribution ? (
               <Doughnut data={distribution.data} options={distribution.options} />

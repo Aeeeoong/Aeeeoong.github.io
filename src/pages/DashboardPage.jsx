@@ -119,14 +119,7 @@ export default function DashboardPage() {
                   <Statistic title="총 운동" value={workouts.length} />
                 </Col>
                 <Col xs={12} sm={6}>
-                  <Statistic
-                    title="7일"
-                    value={workouts.filter((w) => {
-                      const d = new Date()
-                      d.setDate(d.getDate() - 7)
-                      return new Date(w.date) >= d
-                    }).length}
-                  />
+                  <Statistic title="이번 주" value={weekly.workoutCount} suffix="회" />
                 </Col>
                 <Col xs={12} sm={6}>
                   <Statistic

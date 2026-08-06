@@ -78,6 +78,71 @@ export default function HistoryPage() {
     setSearchParams(searchParams)
   }
 
+  function renderExerciseList(workout) {
+    return (workout.exercises || []).map((ex, idx) => {
+      const profile = getExerciseProfile(ex.name, settings)
+      const isCardio = ex.mode === 'cardio' || isCardioProfile(profile)
+      const isDetailed = !isCardio && ex.mode === 'detailed' && ex.setsDetail?.length
+      return (
+        <Card
+          key={`${ex.name}-${idx}`}
+          size="small"
+          type="inner"
+          title={ex.name}
+          extra={isDetailed ? <Tag>상세</Tag> : isCardio ? <Tag color="cyan">유산소</Tag> : null}
+        >
+          {isCardio ? (
+            <Text type="secondary">{formatCardioSummary(ex.cardio, profile)}</Text>
+          ) : isDetailed ? (
+            <Space direction="vertical" style={{ width: '100%' }}>
+              {ex.setsDetail.map((set) => (
+                <FlexRow
+                  key={set.set}
+                  label={`${set.set}세트`}
+                  value={`${set.weight ? `${set.weight}kg` : '-'} × ${set.reps ? `${set.reps}회` : '-'}`}
+                />
+              ))}
+            </Space>
+          ) : (
+            <Text type="secondary">
+              {ex.weight ? `${ex.weight}kg ` : ''}
+              {ex.sets ? `${ex.sets} 세트 ` : ''}
+              {ex.reps ? `${ex.reps}회` : ''}
+            </Text>
+          )}
+          {ex.comment && (
+            <div style={{ marginTop: 8 }}>
+              <Text type="secondary" italic>
+                {ex.comment}
+              </Text>
+            </div>
+          )}
+        </Card>
+      )
+    })
+  }
+
+  function renderWorkoutActions(workout) {
+    return (
+      <Space size={4}>
+        <Button size="small" icon={<EditOutlined />} onClick={() => setEditing(workout)}>
+          수정
+        </Button>
+        <Popconfirm
+          title="이 운동 기록을 삭제할까요?"
+          okText="삭제"
+          cancelText="취소"
+          okButtonProps={{ danger: true }}
+          onConfirm={() => handleDelete(workout.id)}
+        >
+          <Button danger size="small">
+            삭제
+          </Button>
+        </Popconfirm>
+      </Space>
+    )
+  }
+
   return (
     <>
       <PageHeader title="운동 내역" />
@@ -126,87 +191,47 @@ export default function HistoryPage() {
             </Empty>
           </Card>
         ) : (
-          <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            {filteredWorkouts.map((workout) => (
-              <Card
-                key={workout.id}
-                title={
-                  <Space wrap>
-                    <span>
-                      {displayDate(workout.date)}{' '}
-                      <Text type="secondary">({getRelativeTime(workout.date)})</Text>
-                    </span>
-                    <Tag color="purple">{workout.type}</Tag>
+          <Space direction="vertical" size={dateFilter ? 10 : 16} style={{ width: '100%' }}>
+            {filteredWorkouts.map((workout) =>
+              dateFilter ? (
+                <div key={workout.id} className="history-day-workout">
+                  <div className="history-day-workout-header">
+                    <Space size={8} align="center">
+                      <Tag color="purple" style={{ margin: 0 }}>
+                        {workout.type}
+                      </Tag>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {(workout.exercises || []).length}개 운동
+                      </Text>
+                    </Space>
+                    {renderWorkoutActions(workout)}
+                  </div>
+                  <div className="history-day-workout-exercises">
+                    <Space direction="vertical" style={{ width: '100%' }} size={8}>
+                      {renderExerciseList(workout)}
+                    </Space>
+                  </div>
+                </div>
+              ) : (
+                <Card
+                  key={workout.id}
+                  title={
+                    <Space wrap>
+                      <span>
+                        {displayDate(workout.date)}{' '}
+                        <Text type="secondary">({getRelativeTime(workout.date)})</Text>
+                      </span>
+                      <Tag color="purple">{workout.type}</Tag>
+                    </Space>
+                  }
+                  extra={renderWorkoutActions(workout)}
+                >
+                  <Space direction="vertical" style={{ width: '100%' }} size={12}>
+                    {renderExerciseList(workout)}
                   </Space>
-                }
-                extra={
-                  <Space>
-                    <Button
-                      size="small"
-                      icon={<EditOutlined />}
-                      onClick={() => setEditing(workout)}
-                    >
-                      수정
-                    </Button>
-                    <Popconfirm
-                      title="이 운동 기록을 삭제할까요?"
-                      okText="삭제"
-                      cancelText="취소"
-                      okButtonProps={{ danger: true }}
-                      onConfirm={() => handleDelete(workout.id)}
-                    >
-                      <Button danger size="small">
-                        삭제
-                      </Button>
-                    </Popconfirm>
-                  </Space>
-                }
-              >
-                <Space direction="vertical" style={{ width: '100%' }} size={12}>
-                  {(workout.exercises || []).map((ex, idx) => {
-                    const profile = getExerciseProfile(ex.name, settings)
-                    const isCardio = ex.mode === 'cardio' || isCardioProfile(profile)
-                    const isDetailed = !isCardio && ex.mode === 'detailed' && ex.setsDetail?.length
-                    return (
-                      <Card
-                        key={`${ex.name}-${idx}`}
-                        size="small"
-                        type="inner"
-                        title={ex.name}
-                        extra={isDetailed ? <Tag>상세</Tag> : isCardio ? <Tag color="cyan">유산소</Tag> : null}
-                      >
-                        {isCardio ? (
-                          <Text type="secondary">{formatCardioSummary(ex.cardio, profile)}</Text>
-                        ) : isDetailed ? (
-                          <Space direction="vertical" style={{ width: '100%' }}>
-                            {ex.setsDetail.map((set) => (
-                              <FlexRow
-                                key={set.set}
-                                label={`${set.set}세트`}
-                                value={`${set.weight ? `${set.weight}kg` : '-'} × ${set.reps ? `${set.reps}회` : '-'}`}
-                              />
-                            ))}
-                          </Space>
-                        ) : (
-                          <Text type="secondary">
-                            {ex.weight ? `${ex.weight}kg ` : ''}
-                            {ex.sets ? `${ex.sets} 세트 ` : ''}
-                            {ex.reps ? `${ex.reps}회` : ''}
-                          </Text>
-                        )}
-                        {ex.comment && (
-                          <div style={{ marginTop: 8 }}>
-                            <Text type="secondary" italic>
-                              {ex.comment}
-                            </Text>
-                          </div>
-                        )}
-                      </Card>
-                    )
-                  })}
-                </Space>
-              </Card>
-            ))}
+                </Card>
+              ),
+            )}
           </Space>
         )}
       </main>

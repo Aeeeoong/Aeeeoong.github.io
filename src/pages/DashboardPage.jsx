@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   App,
-  Badge,
   Button,
   Calendar,
   Card,
@@ -100,11 +99,15 @@ export default function DashboardPage() {
     [workouts, inbodyRecords, settings],
   )
 
-  function dateCellRender(current) {
+  function renderWorkoutDot(current) {
     const key = current.format('YYYY-MM-DD')
-    const list = byDate[key]
-    if (!list?.length) return null
-    return <Badge status="processing" />
+    const hasWorkout = !!byDate[key]?.length
+    return (
+      <span
+        className={`calendar-workout-dot${hasWorkout ? ' has-workout' : ''}`}
+        aria-hidden
+      />
+    )
   }
 
   return (
@@ -202,16 +205,14 @@ export default function DashboardPage() {
                   const dayWorkouts = byDate[key]
                   return (
                     <div
-                      style={{
-                        minHeight: 24,
-                        cursor: dayWorkouts?.length ? 'pointer' : 'default',
-                      }}
-                      onClick={() => {
+                      className={`dashboard-calendar-cell-extra${dayWorkouts?.length ? ' is-workout-day' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
                         if (!dayWorkouts?.length) return
                         navigate(`/history?date=${key}`)
                       }}
                     >
-                      {dateCellRender(current)}
+                      {renderWorkoutDot(current)}
                     </div>
                   )
                 }}

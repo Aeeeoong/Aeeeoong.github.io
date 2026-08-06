@@ -1386,6 +1386,48 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-bottom: 16px;
 }
 
+.dashboard-calendar-card .ant-picker-calendar-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.dashboard-calendar-card .ant-picker-calendar-date-value {
+  line-height: 1.2;
+}
+
+.dashboard-calendar-card .ant-picker-calendar-date-content {
+  width: 100%;
+  min-height: 12px;
+  line-height: 1;
+}
+
+.dashboard-calendar-cell-extra {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 12px;
+  width: 100%;
+}
+
+.dashboard-calendar-cell-extra.is-workout-day {
+  cursor: pointer;
+}
+
+.calendar-workout-dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.calendar-workout-dot.has-workout {
+  background: var(--primary);
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.22);
+}
+
 .dashboard-recent-card {
   margin-bottom: 0;
 }

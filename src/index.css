@@ -1396,6 +1396,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   line-height: 1.2;
 }
 
+/* 셀 hover/선택 — antd cell-inner 배경(--ant-calendar-cell-hover-bg 등) 제거 */
+.dashboard-calendar-card .ant-picker-cell:hover:not(.ant-picker-cell-disabled) .ant-picker-cell-inner,
+.dashboard-calendar-card .ant-picker-cell-selected .ant-picker-cell-inner,
+.dashboard-calendar-card .ant-picker-cell-in-view.ant-picker-cell-selected .ant-picker-cell-inner {
+  background: transparent !important;
+}
+
 /* 선택된 날짜 — 스타일 완전 제거 (antd 기본 value 연동) */
 .dashboard-calendar-card .ant-picker-cell-selected::before,
 .dashboard-calendar-card .ant-picker-cell-in-view.ant-picker-cell-selected::before {

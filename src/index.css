@@ -1396,18 +1396,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   line-height: 1.2;
 }
 
-/* 오늘 — date-today 클래스만 (실제 오늘 날짜) */
-.dashboard-calendar-card .ant-picker-calendar-date-today {
+/* 오늘 — 이번 달(in-view) 셀만, 선택 상태보다 우선 */
+.dashboard-calendar-card .ant-picker-cell-in-view .ant-picker-calendar-date-today {
   background: transparent !important;
   border-color: var(--border) !important;
 }
 
-.dashboard-calendar-card .ant-picker-calendar-date-today .ant-picker-calendar-date-value {
+.dashboard-calendar-card .ant-picker-cell-in-view .ant-picker-calendar-date-today .ant-picker-calendar-date-value {
   color: var(--primary-light) !important;
   font-weight: 700 !important;
 }
 
-.dashboard-calendar-card .ant-picker-calendar-date-today::before {
+.dashboard-calendar-card .ant-picker-cell-in-view .ant-picker-calendar-date-today::before {
   display: none !important;
 }
 
@@ -1417,7 +1417,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background: transparent !important;
 }
 
-.dashboard-calendar-card .ant-picker-cell-selected .ant-picker-calendar-date-value {
+.dashboard-calendar-card .ant-picker-cell-selected:not(.ant-picker-cell-in-view) .ant-picker-calendar-date-value,
+.dashboard-calendar-card
+  .ant-picker-cell-in-view.ant-picker-cell-selected
+  .ant-picker-calendar-date:not(.ant-picker-calendar-date-today)
+  .ant-picker-calendar-date-value {
   color: inherit !important;
   font-weight: inherit !important;
 }

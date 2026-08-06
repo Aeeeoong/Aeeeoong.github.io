@@ -43,7 +43,11 @@ export default function DashboardPage() {
   const [inbodyRecords, setInbodyRecords] = useState([])
   const [settings, setSettings] = useState(null)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
-  const [calendarMonth, setCalendarMonth] = useState(() => dayjs())
+  const [calendarMonth, setCalendarMonth] = useState(() => dayjs().startOf('month'))
+
+  function shiftCalendarMonth(base, deltaMonths) {
+    setCalendarMonth(base.add(deltaMonths, 'month').startOf('month'))
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -185,13 +189,13 @@ export default function DashboardPage() {
                 fullscreen={false}
                 mode="month"
                 value={calendarMonth}
-                onPanelChange={(date) => setCalendarMonth(date)}
+                onPanelChange={(date) => setCalendarMonth(date.startOf('month'))}
                 headerRender={({ value }) => (
                   <Flex justify="space-between" align="center" style={{ padding: '4px 0 12px' }}>
                     <Button
                       type="text"
                       icon={<LeftOutlined />}
-                      onClick={() => setCalendarMonth(value.clone().subtract(1, 'month'))}
+                      onClick={() => shiftCalendarMonth(value, -1)}
                     />
                     <Text strong>
                       {value.year()}년 {value.month() + 1}월
@@ -199,7 +203,7 @@ export default function DashboardPage() {
                     <Button
                       type="text"
                       icon={<RightOutlined />}
-                      onClick={() => setCalendarMonth(value.clone().add(1, 'month'))}
+                      onClick={() => shiftCalendarMonth(value, 1)}
                     />
                   </Flex>
                 )}

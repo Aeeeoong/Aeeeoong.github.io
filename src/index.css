@@ -1497,6 +1497,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-bottom: 0;
 }
 
+.dashboard-recent-item .ant-list-item-meta-description {
+  margin-top: 2px;
+}
+
 /* 내역 — 달력에서 특정 날짜로 들어왔을 때 */
 .history-day-workout {
   border: 1px solid var(--border);

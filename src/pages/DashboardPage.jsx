@@ -34,6 +34,7 @@ import {
   getDashboardHighlights,
   getMotivationBanner,
   getWeeklySummary,
+  getWorkoutSessionHighlight,
 } from '../lib/workoutInsights'
 import { formatPersonalBestValue } from '../lib/exerciseConfig'
 import { displayDate, formatNumber, getRelativeTime } from '../lib/utils'
@@ -81,7 +82,7 @@ export default function DashboardPage() {
         setInbodyRecords(records)
         setSettings(s)
         setPartnerSummary(partner)
-        setRecent(all.slice(0, 5))
+        setRecent(all.slice(0, 3))
       } catch (err) {
         modal.error({ title: '데이터 로드 실패', content: err.message })
       } finally {
@@ -313,7 +314,7 @@ export default function DashboardPage() {
             </Card>
 
             <Card
-              title="최근 운동 기록"
+              title="최근 하이라이트"
               className="dashboard-recent-card"
               extra={
                 <Link to="/history">
@@ -330,22 +331,43 @@ export default function DashboardPage() {
               ) : (
                 <List
                   dataSource={recent}
-                  renderItem={(workout) => (
-                    <List.Item
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => navigate(`/history?date=${workout.date}`)}
-                    >
-                      <List.Item.Meta
-                        title={
-                          <span>
-                            {displayDate(workout.date)}{' '}
-                            <Text type="secondary">· {workout.type}</Text>
-                          </span>
-                        }
-                        description={`${workout.exercises?.length || 0}개 운동`}
-                      />
-                    </List.Item>
-                  )}
+                  renderItem={(workout) => {
+                    const session = getWorkoutSessionHighlight(workout, workouts, settings)
+                    return (
+                      <List.Item
+                        className="dashboard-recent-item"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => navigate(`/history?date=${workout.date}`)}
+                      >
+                        <List.Item.Meta
+                          title={
+                            <span>
+                              {displayDate(workout.date)}{' '}
+                              <Text type="secondary">· {workout.type}</Text>
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                {' '}
+                                ({getRelativeTime(workout.date)})
+                              </Text>
+                            </span>
+                          }
+                          description={
+                            <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                              <Text style={{ fontSize: 13 }}>{session.highlight}</Text>
+                              {session.tags.length > 0 && (
+                                <Space size={4} wrap>
+                                  {session.tags.map((tag) => (
+                                    <Tag key={tag.key} color={tag.color} style={{ margin: 0 }}>
+                                      {tag.label}
+                                    </Tag>
+                                  ))}
+                                </Space>
+                              )}
+                            </Space>
+                          }
+                        />
+                      </List.Item>
+                    )
+                  }}
                 />
               )}
             </Card>

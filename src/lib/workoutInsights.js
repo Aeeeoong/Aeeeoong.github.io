@@ -1,6 +1,7 @@
 import { formatDate } from './utils'
 import {
   formatExerciseValue,
+  formatPersonalBestValue,
   getExerciseProfile,
   improvementDelta,
   isCardioProfile,
@@ -704,4 +705,101 @@ export function getRoutineStreakWeeks(workouts, routineType) {
     else break
   }
   return weeks
+}
+
+/** 특정 세션 이전의 동일 루틴·기구 기록 */
+function findPreviousExerciseBefore(workouts, workout, exerciseName) {
+  for (const w of workouts) {
+    if (w.date >= workout.date) continue
+    if (w.type !== workout.type) continue
+    const exercise = w.exercises?.find((e) => e.name === exerciseName)
+    if (exercise && getExerciseMetrics(exercise)) {
+      return { workout: w, exercise }
+    }
+  }
+  return null
+}
+
+/** 홈 — 최근 운동 한 세션 하이라이트 */
+export function getWorkoutSessionHighlight(workout, allWorkouts, settings = null) {
+  const bests = getPersonalBests(allWorkouts, settings)
+  const prs = []
+  const improvements = []
+
+  for (const ex of workout.exercises || []) {
+    const profile = getExerciseProfile(ex.name, settings)
+    if (!tracksPersonalBest(profile) && !isCardioProfile(profile)) continue
+
+    const m = getExerciseMetrics(ex)
+    const bestEntry = bests[ex.name]
+
+    if (bestEntry?.bestDate === workout.date && bestEntry.bestValue != null) {
+      if (isCardioProfile(profile)) {
+        const mins = Number(ex.cardio?.minutes)
+        if (mins > 0 && mins === Number(bestEntry.bestValue)) {
+          prs.push({ name: ex.name, value: bestEntry.bestValue, profile })
+        }
+      } else if (m?.maxWeight != null && Number(m.maxWeight) === Number(bestEntry.bestValue)) {
+        prs.push({ name: ex.name, value: bestEntry.bestValue, profile })
+      }
+    }
+
+    const prev = findPreviousExerciseBefore(allWorkouts, workout, ex.name)
+    if (prev) {
+      const parts = compareWithPrevious(ex, prev.exercise, profile)
+      const up = parts?.find((p) => p.tone === 'up')
+      if (up) {
+        improvements.push({
+          name: ex.name,
+          label: `${up.label} ${up.text}`.trim(),
+          profile,
+        })
+      }
+    }
+  }
+
+  const completion = getCompletionRate(workout.exercises)
+  const tags = []
+  if (prs.length > 0) tags.push({ key: 'pr', label: `🏆 PR ${prs.length}`, color: 'gold' })
+  if (improvements.length > 0) {
+    tags.push({ key: 'up', label: `📈 +${improvements.length}`, color: 'success' })
+  }
+  if (completion.percent === 100 && completion.total > 0) {
+    tags.push({ key: 'done', label: '✓ 완료', color: 'processing' })
+  }
+
+  let highlight = ''
+  if (prs.length > 0) {
+    const p = prs[0]
+    highlight = `🏆 ${p.name} ${formatPersonalBestValue(p.value, p.profile)} · ${personalBestLabel(p.profile) || 'PR'}`
+  } else if (improvements.length > 0) {
+    const imp = improvements[0]
+    highlight = `📈 ${imp.name} ${imp.label}`
+  } else if (completion.percent === 100 && completion.total > 0) {
+    highlight = `✓ ${completion.label} 전부 기록`
+  } else {
+    const filled = (workout.exercises || []).find(isExerciseFilled)
+    if (filled) {
+      const profile = getExerciseProfile(filled.name, settings)
+      if (isCardioProfile(profile) && filled.cardio?.minutes) {
+        highlight = `⏱ ${filled.name} ${filled.cardio.minutes}분`
+      } else {
+        const fm = getExerciseMetrics(filled)
+        if (fm?.maxWeight != null) {
+          const val = formatExerciseValue(fm.maxWeight, profile)
+          highlight = fm.reps
+            ? `💪 ${filled.name} ${val}×${fm.reps}회`
+            : `💪 ${filled.name} ${val}`
+        } else if (fm?.reps) {
+          highlight = `💪 ${filled.name} ${fm.reps}회`
+        } else {
+          highlight = `💪 ${filled.name}`
+        }
+      }
+    } else {
+      highlight = `${workout.exercises?.length || 0}개 운동`
+    }
+  }
+
+  return { highlight, tags, prCount: prs.length, improveCount: improvements.length }
 }

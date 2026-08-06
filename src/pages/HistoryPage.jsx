@@ -74,6 +74,20 @@ export default function HistoryPage() {
     return list
   }, [workouts, dateFilter, monthFilter, search])
 
+  const groupedByDate = useMemo(() => {
+    if (dateFilter) return null
+    const groups = []
+    for (const workout of filteredWorkouts) {
+      const last = groups[groups.length - 1]
+      if (last?.date === workout.date) {
+        last.workouts.push(workout)
+      } else {
+        groups.push({ date: workout.date, workouts: [workout] })
+      }
+    }
+    return groups
+  }, [filteredWorkouts, dateFilter])
+
   const monthOptions = useMemo(() => {
     const months = new Set(workouts.map((w) => w.date.slice(0, 7)))
     return [...months]
@@ -161,6 +175,29 @@ export default function HistoryPage() {
     )
   }
 
+  function renderCompactWorkout(workout) {
+    return (
+      <div key={workout.id} className="history-day-workout">
+        <div className="history-day-workout-header">
+          <Space size={8} align="center">
+            <Tag color="purple" style={{ margin: 0 }}>
+              {workout.type}
+            </Tag>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {(workout.exercises || []).length}개 운동
+            </Text>
+          </Space>
+          {renderWorkoutActions(workout)}
+        </div>
+        <div className="history-day-workout-exercises">
+          <Space direction="vertical" style={{ width: '100%' }} size={8}>
+            {renderExerciseList(workout)}
+          </Space>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       <PageHeader title="운동 내역" />
@@ -227,47 +264,23 @@ export default function HistoryPage() {
             </Empty>
           </Card>
         ) : (
-          <Space direction="vertical" size={dateFilter ? 10 : 16} style={{ width: '100%' }}>
-            {filteredWorkouts.map((workout) =>
-              dateFilter ? (
-                <div key={workout.id} className="history-day-workout">
-                  <div className="history-day-workout-header">
-                    <Space size={8} align="center">
-                      <Tag color="purple" style={{ margin: 0 }}>
-                        {workout.type}
-                      </Tag>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        {(workout.exercises || []).length}개 운동
+          <Space direction="vertical" size={dateFilter ? 10 : 20} style={{ width: '100%' }}>
+            {dateFilter
+              ? filteredWorkouts.map((workout) => renderCompactWorkout(workout))
+              : groupedByDate?.map((group) => (
+                  <section key={group.date} className="history-date-group">
+                    <div className="history-date-group-header">
+                      {displayDate(group.date)}
+                      <Text type="secondary" className="history-date-group-relative">
+                        {' '}
+                        ({getRelativeTime(group.date)})
                       </Text>
+                    </div>
+                    <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                      {group.workouts.map((workout) => renderCompactWorkout(workout))}
                     </Space>
-                    {renderWorkoutActions(workout)}
-                  </div>
-                  <div className="history-day-workout-exercises">
-                    <Space direction="vertical" style={{ width: '100%' }} size={8}>
-                      {renderExerciseList(workout)}
-                    </Space>
-                  </div>
-                </div>
-              ) : (
-                <Card
-                  key={workout.id}
-                  title={
-                    <Space wrap>
-                      <span>
-                        {displayDate(workout.date)}{' '}
-                        <Text type="secondary">({getRelativeTime(workout.date)})</Text>
-                      </span>
-                      <Tag color="purple">{workout.type}</Tag>
-                    </Space>
-                  }
-                  extra={renderWorkoutActions(workout)}
-                >
-                  <Space direction="vertical" style={{ width: '100%' }} size={12}>
-                    {renderExerciseList(workout)}
-                  </Space>
-                </Card>
-              ),
-            )}
+                  </section>
+                ))}
           </Space>
         )}
       </main>

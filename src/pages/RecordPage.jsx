@@ -20,6 +20,7 @@ import { DeleteOutlined, HolderOutlined, HistoryOutlined, PlusOutlined, SaveOutl
 import { PageHeader } from '../components/Layout'
 import CardioExerciseInputs from '../components/CardioExerciseInputs'
 import DateField from '../components/DateField'
+import SimpleExerciseInputs from '../components/SimpleExerciseInputs'
 import {
   ExerciseCompareHint,
   ExerciseDoneBadge,
@@ -28,7 +29,7 @@ import {
   PersonalBestCompareHint,
 } from '../components/ExerciseHints'
 import { useAuth } from '../context/AuthContext'
-import { addWorkout, getSettings, getWorkouts } from '../services/storage'
+import { addWorkout, getRecentWorkouts, getSettings } from '../services/storage'
 import { emptyExercise, exerciseFromSaved, serializeExercises } from '../lib/workoutForm'
 import { getExerciseProfile, inputNumberPropsForProfile, isCardioProfile } from '../lib/exerciseConfig'
 import {
@@ -37,6 +38,8 @@ import {
   getCompletionRate,
   getLastWorkoutByType,
   getPersonalBests,
+  getRoutineStreakWeeks,
+  getWeightSuggestion,
   isExerciseFilled,
 } from '../lib/workoutInsights'
 import {
@@ -57,44 +60,6 @@ import {
 import { getTodayString } from '../lib/utils'
 
 const { Text } = Typography
-
-function SimpleExerciseInputs({ ex, ph, index, updateExercise, profile }) {
-  const numProps = inputNumberPropsForProfile(profile)
-  const isPlainNumber = profile?.unit === 'level' || profile?.unit === 'assist'
-  return (
-    <div className="simple-exercise-inputs">
-      <Form.Item label={profile?.inputLabel || '무게'} className="field-weight" style={{ marginBottom: 8 }}>
-        <InputNumber
-          style={{ width: '100%' }}
-          {...numProps}
-          placeholder={
-            ph.weight != null ? String(ph.weight) : isPlainNumber ? '0' : '0.0'
-          }
-          value={ex.weight}
-          onChange={(v) => updateExercise(index, { weight: v })}
-        />
-      </Form.Item>
-      <Form.Item label="회" className="field-reps" style={{ marginBottom: 8 }}>
-        <InputNumber
-          style={{ width: '100%' }}
-          controls={false}
-          placeholder={ph.reps != null ? String(ph.reps) : '0'}
-          value={ex.reps}
-          onChange={(v) => updateExercise(index, { reps: v })}
-        />
-      </Form.Item>
-      <Form.Item label="세트" className="field-sets" style={{ marginBottom: 8 }}>
-        <InputNumber
-          style={{ width: '100%' }}
-          controls={false}
-          placeholder={ph.sets != null ? String(ph.sets) : '0'}
-          value={ex.sets}
-          onChange={(v) => updateExercise(index, { sets: v })}
-        />
-      </Form.Item>
-    </div>
-  )
-}
 
 export default function RecordPage() {
   const { user } = useAuth()
@@ -143,7 +108,7 @@ export default function RecordPage() {
   }, [user])
 
   useEffect(() => {
-    getWorkouts(user).then(setAllWorkouts)
+    getRecentWorkouts(user, 100).then(setAllWorkouts)
   }, [user])
 
   useEffect(() => {
@@ -191,7 +156,7 @@ export default function RecordPage() {
 
       const names = settings.exercises[type] || []
       setExercises(names.map((name) => emptyExercise(name, settings)))
-      const recent = await getWorkouts(user)
+      const recent = await getRecentWorkouts(user, 50)
       if (cancelled) return
       const recentWorkout = recent.find((w) => w.type === type)
       const map = {}
@@ -409,7 +374,7 @@ export default function RecordPage() {
       await addWorkout(user, { date, type, exercises: result.exercises })
       clearRecordDraft(user)
       setDraftSavedAt(null)
-      message.success('운동 기록이 Firebase에 저장되었습니다!')
+      message.success('운동 기록이 저장되었습니다!')
       navigate('/')
     } catch (err) {
       modal.error({ title: '저장 실패', content: err.message })
@@ -473,6 +438,7 @@ export default function RecordPage() {
   }
 
   const personalBests = getPersonalBests(allWorkouts, settings)
+  const routineWeeks = getRoutineStreakWeeks(allWorkouts, type)
   const completion = getCompletionRate(exercises)
   const lastWorkoutForType = getLastWorkoutByType(allWorkouts, type)
   const workoutsOnDate = allWorkouts.filter((w) => w.date === date)
@@ -512,7 +478,7 @@ export default function RecordPage() {
               showIcon
               style={{ marginBottom: 16 }}
               message={`임시저장됨 · ${draftTimeLabel}`}
-              description="입력 중 자동 저장됩니다. Firebase 저장 전까지 이 기기에 보관돼요."
+              description="입력 중 자동 저장됩니다. 저장하기 전까지 이 기기에 보관돼요."
               action={
                 <Button size="small" danger type="text" onClick={clearDraft}>
                   삭제
@@ -544,6 +510,14 @@ export default function RecordPage() {
                     : `이 날짜에 ${workoutsOnDate.length}건 기록이 있어요`
                 }
                 description={`${workoutsOnDate.map((w) => w.type).join(' · ')} — 추가 기록도 가능합니다`}
+              />
+            )}
+            {type && routineWeeks >= 2 && (
+              <Alert
+                type="success"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message={`${type} ${routineWeeks}주째 꾸준히!`}
               />
             )}
             {lastWorkoutForType && (
@@ -661,13 +635,34 @@ export default function RecordPage() {
                         profile={profile}
                       />
                       <ExerciseInputHint name={ex.name} profile={profile} />
-                      {prev && (
-                        <ExerciseCompareHint
-                          current={ex}
-                          previous={prev.exercise}
-                          profile={profile}
-                        />
-                      )}
+                      {prev && (() => {
+                        const suggestion = getWeightSuggestion(ex, prev.exercise, profile)
+                        return (
+                          <>
+                            {suggestion && (
+                              <Button
+                                size="small"
+                                type="dashed"
+                                style={{ marginBottom: 8 }}
+                                onClick={() =>
+                                  updateExercise(index, {
+                                    weight: suggestion.weight,
+                                    reps: suggestion.reps,
+                                    sets: suggestion.sets,
+                                  })
+                                }
+                              >
+                                {suggestion.label} (+2.5kg)
+                              </Button>
+                            )}
+                            <ExerciseCompareHint
+                              current={ex}
+                              previous={prev.exercise}
+                              profile={profile}
+                            />
+                          </>
+                        )
+                      })()}
                       {bestEntry?.bestValue != null && (
                         <PersonalBestCompareHint
                           current={ex}
@@ -777,11 +772,11 @@ export default function RecordPage() {
                 임시저장
               </Button>
               <Button type="primary" block loading={saving} onClick={handleSave}>
-                Firebase 저장
+                저장하기
               </Button>
             </Flex>
             <Text type="secondary" style={{ fontSize: 12, display: 'block', textAlign: 'center' }}>
-              임시저장은 이 기기에만 보관 · Firebase 저장 시 최종 반영
+              임시저장은 이 기기에만 보관 · 저장하기를 누르면 클라우드에 반영
             </Text>
           </Space>
         </Card>

@@ -8,9 +8,12 @@ import {
   query,
   where,
   orderBy,
+  limit,
   writeBatch,
 } from 'firebase/firestore'
 import { db, ensureAnonymousAuth } from '../lib/firebase'
+import { generateId } from '../lib/id'
+import { generatePinSalt, hashPin, verifyPin } from '../lib/pinAuth'
 import { getDefaultData, getDefaultSettings, mergeSettingsWithDefaults } from '../lib/defaults'
 
 const USER_KEY = 'currentUser'
@@ -113,6 +116,10 @@ async function ready(username) {
   await ensureAnonymousAuth()
 }
 
+async function authReady() {
+  await ensureAnonymousAuth()
+}
+
 /**
  * Firebase를 유일한 저장소로 사용.
  * allowLegacyImport: true — 로그인 화면에서 처음 들어올 때만 (예전 localStorage 1회 이전)
@@ -194,10 +201,43 @@ export async function saveSettings(username, settings) {
   return settings
 }
 
+export async function getUserMeta(username) {
+  if (!username) throw new Error('사용자 이름이 필요합니다.')
+  await authReady()
+  const snap = await getDoc(userRef(username))
+  return snap.exists() ? snap.data() : { username }
+}
+
+export async function userHasPin(username) {
+  const meta = await getUserMeta(username)
+  return !!(meta.pinHash && meta.pinSalt)
+}
+
+export async function verifyUserPin(username, pin) {
+  if (!username) throw new Error('사용자 이름이 필요합니다.')
+  await authReady()
+  const meta = await getUserMeta(username)
+  if (!meta.pinHash) return { ok: true, needsSetup: true }
+  const ok = await verifyPin(pin, meta.pinSalt, meta.pinHash)
+  return { ok, needsSetup: false }
+}
+
+export async function setUserPin(username, pin) {
+  await ready(username)
+  const salt = generatePinSalt()
+  const pinHash = await hashPin(pin, salt)
+  await setDoc(
+    userRef(username),
+    { username, pinSalt: salt, pinHash, pinUpdatedAt: new Date().toISOString() },
+    { merge: true },
+  )
+  return true
+}
+
 export async function addWorkout(username, workout) {
   await ready(username)
   const newWorkout = {
-    id: Date.now(),
+    id: generateId(),
     date: workout.date,
     type: workout.type,
     exercises: workout.exercises,
@@ -226,28 +266,42 @@ export async function deleteWorkout(username, id) {
 
 export async function getWorkouts(username, filters = {}) {
   await ready(username)
-  let q = workoutsCol(username)
-  if (filters.type) {
-    q = query(workoutsCol(username), where('type', '==', filters.type))
+  const col = workoutsCol(username)
+  const hasExtraFilter = !!(filters.type || filters.startDate || filters.endDate)
+
+  if (!hasExtraFilter && filters.limit) {
+    const snapshot = await getDocs(query(col, orderBy('date', 'desc'), limit(filters.limit)))
+    return snapshot.docs.map((d) => d.data())
   }
-  const snapshot = await getDocs(q)
+
+  const snapshot = await getDocs(query(col, orderBy('date', 'desc')))
   let workouts = snapshot.docs.map((d) => d.data())
 
-  if (filters.startDate) {
-    workouts = workouts.filter((w) => new Date(w.date) >= new Date(filters.startDate))
-  }
-  if (filters.endDate) {
-    workouts = workouts.filter((w) => new Date(w.date) <= new Date(filters.endDate))
-  }
+  if (filters.type) workouts = workouts.filter((w) => w.type === filters.type)
+  if (filters.startDate) workouts = workouts.filter((w) => w.date >= filters.startDate)
+  if (filters.endDate) workouts = workouts.filter((w) => w.date <= filters.endDate)
+  if (filters.limit) workouts = workouts.slice(0, filters.limit)
 
-  workouts.sort((a, b) => new Date(b.date) - new Date(a.date))
   return workouts
+}
+
+/** 홈·최근 목록용 */
+export async function getRecentWorkouts(username, limitCount = 50) {
+  return getWorkouts(username, { limit: limitCount })
+}
+
+/** 달력 월 범위 */
+export async function getWorkoutsForMonth(username, year, month) {
+  const start = `${year}-${String(month).padStart(2, '0')}-01`
+  const lastDay = new Date(year, month, 0).getDate()
+  const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+  return getWorkouts(username, { startDate: start, endDate: end })
 }
 
 export async function addInbody(username, inbody) {
   await ready(username)
   const newInbody = {
-    id: Date.now(),
+    id: generateId(),
     date: inbody.date,
     weight: parseFloat(inbody.weight),
     muscleMass: parseFloat(inbody.muscleMass ?? inbody.muscle),
@@ -258,7 +312,27 @@ export async function addInbody(username, inbody) {
   return newInbody
 }
 
-export async function getInbodyRecords(username, limitCount = null) {
+export async function updateInbody(username, record) {
+  await ready(username)
+  if (record?.id == null) throw new Error('수정할 인바디 ID가 없습니다.')
+  const updated = {
+    ...record,
+    muscleMass: parseFloat(record.muscleMass ?? record.muscle),
+    weight: parseFloat(record.weight),
+    bodyFat: parseFloat(record.bodyFat),
+    updatedAt: new Date().toISOString(),
+  }
+  await setDoc(doc(inbodyCol(username), String(record.id)), updated)
+  return updated
+}
+
+export async function deleteInbody(username, id) {
+  await ready(username)
+  await deleteDoc(doc(inbodyCol(username), String(id)))
+  return true
+}
+
+export async function getInbodyRecords(username, limitCount = null, filters = {}) {
   await ready(username)
   const snapshot = await getDocs(query(inbodyCol(username), orderBy('date', 'desc')))
   let records = snapshot.docs.map((d) => {
@@ -268,6 +342,8 @@ export async function getInbodyRecords(username, limitCount = null) {
       muscleMass: data.muscleMass ?? data.muscle,
     }
   })
+  if (filters.startDate) records = records.filter((r) => r.date >= filters.startDate)
+  if (filters.endDate) records = records.filter((r) => r.date <= filters.endDate)
   return limitCount ? records.slice(0, limitCount) : records
 }
 
@@ -419,6 +495,32 @@ export async function clearUserData(username) {
 
   await setDoc(settingsRef(username), getDefaultSettings())
   return true
+}
+
+export async function getPartnerSummary(partnerUsername) {
+  if (!partnerUsername) return null
+  try {
+    await ready(partnerUsername)
+    const workouts = await getRecentWorkouts(partnerUsername, 30)
+    const today = new Date()
+    const day = today.getDay()
+    const offset = day === 0 ? -6 : 1 - day
+    const monday = new Date(today)
+    monday.setDate(today.getDate() + offset)
+    const weekStart = monday.toISOString().slice(0, 10)
+    const weekCount = workouts.filter((w) => w.date >= weekStart).length
+    const last = workouts[0] || null
+    return {
+      username: partnerUsername,
+      weekCount,
+      lastWorkout: last
+        ? { date: last.date, type: last.type, exerciseCount: last.exercises?.length || 0 }
+        : null,
+      totalRecent: workouts.length,
+    }
+  } catch {
+    return null
+  }
 }
 
 export { getDefaultData }

@@ -37,6 +37,7 @@ import {
   getExerciseSummary,
   getPersonalBests,
 } from '../lib/workoutInsights'
+import { STATS_PERIODS, filterByDateRange, getStatsDateRange } from '../lib/dateRange'
 import { displayDate, formatNumber } from '../lib/utils'
 
 ChartJS.register(
@@ -69,8 +70,9 @@ function calcYRange(data) {
 export default function StatsPage() {
   const { user } = useAuth()
   const [tab, setTab] = useState('weight')
-  const [inbody, setInbody] = useState([])
-  const [workouts, setWorkouts] = useState([])
+  const [period, setPeriod] = useState('all')
+  const [inbodyAll, setInbodyAll] = useState([])
+  const [workoutsAll, setWorkoutsAll] = useState([])
   const [settings, setSettings] = useState(null)
   const [routine, setRoutine] = useState('')
   const [exercise, setExercise] = useState('')
@@ -79,8 +81,8 @@ export default function StatsPage() {
   useEffect(() => {
     Promise.all([getInbodyRecords(user), getWorkouts(user), getSettings(user)]).then(
       ([records, allWorkouts, conf]) => {
-        setInbody([...records].reverse())
-        setWorkouts(allWorkouts)
+        setInbodyAll(records)
+        setWorkoutsAll(allWorkouts)
         setSettings(conf)
         const firstRoutine = conf.routineOrder[0]
         setRoutine(firstRoutine)
@@ -88,6 +90,16 @@ export default function StatsPage() {
       },
     )
   }, [user])
+
+  const { startDate, endDate } = useMemo(() => getStatsDateRange(period), [period])
+  const workouts = useMemo(
+    () => filterByDateRange(workoutsAll, startDate, endDate),
+    [workoutsAll, startDate, endDate],
+  )
+  const inbody = useMemo(() => {
+    const filtered = filterByDateRange(inbodyAll, startDate, endDate)
+    return [...filtered].reverse()
+  }, [inbodyAll, startDate, endDate])
 
   useEffect(() => {
     if (!exercise) return
@@ -298,6 +310,15 @@ export default function StatsPage() {
     <>
       <PageHeader title="통계" />
       <main className="container">
+        <Card size="small" style={{ marginBottom: 16 }}>
+          <Segmented
+            value={period}
+            onChange={setPeriod}
+            options={STATS_PERIODS.map((p) => ({ label: p.label, value: p.key }))}
+            block
+          />
+        </Card>
+
         <Card
           title="인바디 추이"
           extra={

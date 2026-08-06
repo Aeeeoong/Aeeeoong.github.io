@@ -632,3 +632,76 @@ export function formatWeekRangeLabel(weekStart, weekEnd) {
   const e = new Date(`${weekEnd}T12:00:00`)
   return `${s.getMonth() + 1}/${s.getDate()} ~ ${e.getMonth() + 1}/${e.getDate()} (월~일)`
 }
+
+const WEEKLY_GOAL_EXPORT = 5
+
+/** 홈 대시보드 — 주간 목표·최근 PR·마지막 루틴 */
+export function getDashboardHighlights(workouts, settings = null) {
+  const today = formatDate(new Date())
+  const weekStart = getMondayOfWeek(new Date())
+  const weekEnd = addDays(weekStart, 6)
+  const thisWeek = workouts.filter((w) => w.date >= weekStart && w.date <= weekEnd)
+  const weekCount = thisWeek.length
+
+  const lastWorkout = workouts[0] || null
+  let lastRoutineLine = null
+  if (lastWorkout) {
+    const days = daysBetween(lastWorkout.date, today)
+    const ago = days === 0 ? '오늘' : days === 1 ? '어제' : `${days}일 전`
+    lastRoutineLine = `마지막 ${lastWorkout.type} · ${ago}`
+  }
+
+  const bests = getPersonalBests(workouts, settings)
+  const recentPrs = Object.entries(bests)
+    .filter(([, b]) => b.bestDate && b.bestValue != null)
+    .sort((a, b) => b[1].bestDate.localeCompare(a[1].bestDate))
+    .slice(0, 2)
+    .map(([name, b]) => ({
+      name,
+      value: b.bestValue,
+      date: b.bestDate,
+      profile: b.profile,
+    }))
+
+  return {
+    weekGoal: WEEKLY_GOAL_EXPORT,
+    weekCount,
+    weekProgress: Math.min(100, Math.round((weekCount / WEEKLY_GOAL_EXPORT) * 100)),
+    lastRoutineLine,
+    recentPrs,
+  }
+}
+
+/** 기록 화면 — 지난번 대비 제안 */
+export function getWeightSuggestion(currentExercise, previousExercise, profile) {
+  if (!profile || profile.unit !== 'kg') return null
+  const cur = getExerciseMetrics(currentExercise)
+  const prev = getExerciseMetrics(previousExercise)
+  if (prev?.maxWeight == null) return null
+
+  const base = currentExercise?.weight ?? prev.maxWeight
+  const suggested = Number((Number(base) + 2.5).toFixed(1))
+  return {
+    label: `${suggested}kg 제안`,
+    weight: suggested,
+    reps: prev.reps ?? cur?.reps ?? null,
+    sets: prev.sets ?? cur?.sets ?? null,
+  }
+}
+
+/** 같은 루틴 연속 주차 (대략) */
+export function getRoutineStreakWeeks(workouts, routineType) {
+  if (!routineType) return 0
+  const dates = [...new Set(workouts.filter((w) => w.type === routineType).map((w) => w.date))].sort(
+    (a, b) => b.localeCompare(a),
+  )
+  if (dates.length === 0) return 0
+
+  let weeks = 1
+  for (let i = 0; i < dates.length - 1; i++) {
+    const gap = daysBetween(dates[i + 1], dates[i])
+    if (gap <= 10) weeks++
+    else break
+  }
+  return weeks
+}

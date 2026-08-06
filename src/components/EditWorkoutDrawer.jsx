@@ -17,6 +17,12 @@ import {
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import CardioExerciseInputs from './CardioExerciseInputs'
 import DateField from './DateField'
+import SimpleExerciseInputs from './SimpleExerciseInputs'
+import {
+  ExerciseCompareHint,
+  ExerciseInputHint,
+  PersonalBestCompareHint,
+} from './ExerciseHints'
 import {
   emptyExercise,
   exerciseFromSaved,
@@ -29,11 +35,23 @@ import {
   getAddableExerciseOptions,
   isFreeRoutine,
 } from '../lib/routines'
+import {
+  findPreviousExercise,
+  getPersonalBests,
+} from '../lib/workoutInsights'
 import { updateWorkout } from '../services/storage'
 
 const { Text } = Typography
 
-export default function EditWorkoutDrawer({ open, workout, settings, user, onClose, onSaved }) {
+export default function EditWorkoutDrawer({
+  open,
+  workout,
+  settings,
+  user,
+  allWorkouts = [],
+  onClose,
+  onSaved,
+}) {
   const { message, modal } = App.useApp()
   const [date, setDate] = useState('')
   const [type, setType] = useState('')
@@ -50,6 +68,11 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
   const routineOptions = useMemo(
     () => (settings?.routineOrder || []).map((name) => ({ value: name, label: name })),
     [settings],
+  )
+
+  const personalBests = useMemo(
+    () => getPersonalBests(allWorkouts, settings),
+    [allWorkouts, settings],
   )
 
   function updateExercise(index, patch) {
@@ -172,6 +195,8 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
         {exercises.map((ex, index) => {
           const profile = getExerciseProfile(ex.name, settings)
           const isCardio = ex.mode === 'cardio' || isCardioProfile(profile)
+          const prev = findPreviousExercise(allWorkouts, type, ex.name)
+          const bestEntry = personalBests[ex.name]
           return (
           <Card
             key={`${ex.name}-${index}`}
@@ -208,32 +233,21 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
                 profile={profile}
               />
             ) : ex.mode === 'simple' ? (
-              <div className="simple-exercise-inputs">
-                <Form.Item label={profile.inputLabel} className="field-weight" style={{ marginBottom: 8 }}>
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    {...inputNumberPropsForProfile(profile)}
-                    value={ex.weight}
-                    onChange={(v) => updateExercise(index, { weight: v })}
-                  />
-                </Form.Item>
-                <Form.Item label="회" className="field-reps" style={{ marginBottom: 8 }}>
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    controls={false}
-                    value={ex.reps}
-                    onChange={(v) => updateExercise(index, { reps: v })}
-                  />
-                </Form.Item>
-                <Form.Item label="세트" className="field-sets" style={{ marginBottom: 8 }}>
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    controls={false}
-                    value={ex.sets}
-                    onChange={(v) => updateExercise(index, { sets: v })}
-                  />
-                </Form.Item>
-              </div>
+              <>
+                <SimpleExerciseInputs
+                  ex={ex}
+                  index={index}
+                  updateExercise={updateExercise}
+                  profile={profile}
+                />
+                <ExerciseInputHint name={ex.name} profile={profile} />
+                {prev && (
+                  <ExerciseCompareHint current={ex} previous={prev.exercise} profile={profile} />
+                )}
+                {bestEntry?.bestValue != null && (
+                  <PersonalBestCompareHint current={ex} bestEntry={bestEntry} profile={profile} />
+                )}
+              </>
             ) : (
               <>
                 <Form.Item label="세트 수" style={{ marginBottom: 12 }}>

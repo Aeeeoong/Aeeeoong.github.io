@@ -7,6 +7,7 @@ import {
   Input,
   Modal,
   Popconfirm,
+  Select,
   Space,
   Spin,
   Typography,
@@ -21,9 +22,17 @@ import {
   ImportOutlined,
   LogoutOutlined,
   PlusOutlined,
+  SettingOutlined,
 } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
+import {
+  buildExerciseProfile,
+  getExerciseProfile,
+  getProfileUnitKey,
+  PROFILE_UNIT_OPTIONS,
+} from '../lib/exerciseConfig'
+import { validatePinFormat } from '../lib/pinAuth'
 import { clearOnboardingSeen } from '../lib/onboarding'
 import {
   clearUserData,
@@ -32,6 +41,8 @@ import {
   importBundle,
   resetSettings,
   saveSettings,
+  setUserPin,
+  userHasPin,
 } from '../services/storage'
 
 const { Text, Paragraph } = Typography
@@ -45,10 +56,16 @@ export default function SettingsPage() {
   const [exerciseModal, setExerciseModal] = useState(null)
   const [routineName, setRoutineName] = useState('')
   const [exerciseName, setExerciseName] = useState('')
+  const [profileModal, setProfileModal] = useState(null)
+  const [profileUnit, setProfileUnit] = useState('kg')
+  const [pinValue, setPinValue] = useState('')
+  const [pinConfirm, setPinConfirm] = useState('')
+  const [hasPin, setHasPin] = useState(false)
   const [busy, setBusy] = useState(false)
 
   async function refresh() {
     setSettings(await getSettings(user))
+    setHasPin(await userHasPin(user))
   }
 
   useEffect(() => {
@@ -111,6 +128,45 @@ export default function SettingsPage() {
     next.exercises[exerciseModal.routine] = list
     await persist(next)
     setExerciseModal(null)
+  }
+
+  async function handleSavePin() {
+    const err = validatePinFormat(pinValue)
+    if (err) {
+      message.warning(err)
+      return
+    }
+    if (pinValue !== pinConfirm) {
+      message.warning('PIN 확인이 일치하지 않습니다.')
+      return
+    }
+    setBusy(true)
+    try {
+      await setUserPin(user, pinValue)
+      setHasPin(true)
+      setPinValue('')
+      setPinConfirm('')
+      message.success('PIN이 설정되었습니다.')
+    } catch (err) {
+      modal.error({ title: 'PIN 설정 실패', content: err.message })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleSaveProfile() {
+    if (!profileModal || !settings) return
+    const next = structuredClone(settings)
+    if (!next.exerciseProfiles) next.exerciseProfiles = {}
+    next.exerciseProfiles[profileModal] = buildExerciseProfile(profileUnit)
+    await persist(next)
+    setProfileModal(null)
+  }
+
+  function openProfileModal(exerciseName) {
+    const profile = getExerciseProfile(exerciseName, settings)
+    setProfileUnit(getProfileUnitKey(profile))
+    setProfileModal(exerciseName)
   }
 
   async function handleExport() {
@@ -181,6 +237,33 @@ export default function SettingsPage() {
                 로그아웃
               </Button>
             </Popconfirm>
+          </Space>
+        </Card>
+
+        <Card title="보안 (PIN)" style={{ marginBottom: 16 }}>
+          <Paragraph type="secondary" style={{ marginBottom: 12 }}>
+            {hasPin
+              ? 'PIN이 설정되어 있습니다. 변경하려면 새 PIN을 입력하세요.'
+              : 'PIN을 설정하면 이름을 아는 사람도 기록에 접근하기 어려워집니다.'}
+          </Paragraph>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Input.Password
+              placeholder="PIN (4~8자리 숫자)"
+              value={pinValue}
+              onChange={(e) => setPinValue(e.target.value)}
+              inputMode="numeric"
+              maxLength={8}
+            />
+            <Input.Password
+              placeholder="PIN 확인"
+              value={pinConfirm}
+              onChange={(e) => setPinConfirm(e.target.value)}
+              inputMode="numeric"
+              maxLength={8}
+            />
+            <Button type="primary" block loading={busy} onClick={handleSavePin}>
+              {hasPin ? 'PIN 변경' : 'PIN 설정'}
+            </Button>
           </Space>
         </Card>
 
@@ -278,8 +361,19 @@ export default function SettingsPage() {
                     <div className="settings-exercise-list">
                       {exercises.map((ex, exIndex) => (
                         <div key={ex} className="settings-exercise-item">
-                          <div className="settings-exercise-name">{ex}</div>
+                          <div className="settings-exercise-name">
+                            {ex}
+                            <Text type="secondary" style={{ fontSize: 11, marginLeft: 6 }}>
+                              {getProfileUnitKey(getExerciseProfile(ex, settings))}
+                            </Text>
+                          </div>
                           <div className="settings-exercise-actions">
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<SettingOutlined />}
+                              onClick={() => openProfileModal(ex)}
+                            />
                             <Button
                               type="text"
                               size="small"
@@ -352,11 +446,11 @@ export default function SettingsPage() {
         <Card title="데이터" style={{ marginBottom: 16 }}>
           <Space direction="vertical" style={{ width: '100%' }}>
             <Button type="primary" icon={<ExportOutlined />} block onClick={handleExport}>
-              Firebase 데이터 내보내기
+              데이터 내보내기
             </Button>
             <Upload accept="application/json" showUploadList={false} beforeUpload={handleImportFile}>
               <Button icon={<ImportOutlined />} block>
-                JSON 가져오기 → Firebase
+                JSON 가져오기
               </Button>
             </Upload>
             <Popconfirm
@@ -438,6 +532,22 @@ export default function SettingsPage() {
           onChange={(e) => setExerciseName(e.target.value)}
           onPressEnter={handleSaveExercise}
           autoFocus
+        />
+      </Modal>
+
+      <Modal
+        title={`${profileModal} — 기구 유형`}
+        open={!!profileModal}
+        onCancel={() => setProfileModal(null)}
+        onOk={handleSaveProfile}
+        okText="저장"
+        cancelText="취소"
+      >
+        <Select
+          style={{ width: '100%' }}
+          value={profileUnit}
+          onChange={setProfileUnit}
+          options={PROFILE_UNIT_OPTIONS}
         />
       </Modal>
     </>

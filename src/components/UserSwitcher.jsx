@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { App, Form, Input, Modal, Typography } from 'antd'
 import { PlusOutlined, SwapOutlined } from '@ant-design/icons'
 import { useAuth } from '../context/AuthContext'
+import { userHasPin } from '../services/storage'
 
 const { Text, Paragraph } = Typography
 
@@ -16,8 +17,11 @@ export default function UserSwitcher() {
   const { user, knownUsers, switchUser, bootstrapping } = useAuth()
   const { message } = App.useApp()
   const [addOpen, setAddOpen] = useState(false)
+  const [pinOpen, setPinOpen] = useState(false)
+  const [pendingUser, setPendingUser] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm()
+  const [pinForm] = Form.useForm()
 
   const displayUsers = useMemo(() => {
     const names = new Set(knownUsers)
@@ -33,19 +37,50 @@ export default function UserSwitcher() {
 
   if (!user) return null
 
-  function handleSwitch(name) {
+  async function performSwitch(name, pin = '') {
+    try {
+      const switched = await switchUser(name, pin)
+      if (switched) {
+        message.loading({ content: `${name}(으)로 전환 중…`, key: 'user-switch', duration: 0 })
+      }
+    } catch (err) {
+      message.error(err.message || '전환 실패')
+      throw err
+    }
+  }
+
+  async function handleSwitch(name) {
     if (bootstrapping) return
     if (name === user) {
       message.info('현재 선택된 사용자예요')
       return
     }
-    const switched = switchUser(name)
-    if (switched) {
-      message.loading({ content: `${name}(으)로 전환 중…`, key: 'user-switch', duration: 0 })
+    try {
+      const needsPin = await userHasPin(name)
+      if (needsPin) {
+        setPendingUser(name)
+        pinForm.resetFields()
+        setPinOpen(true)
+        return
+      }
+      await performSwitch(name)
+    } catch {
+      /* message shown */
     }
   }
 
-  async function handleAddUser({ username }) {
+  async function handlePinSubmit({ pin }) {
+    setSubmitting(true)
+    try {
+      await performSwitch(pendingUser, pin)
+      setPinOpen(false)
+      setPendingUser('')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleAddUser({ username, pin }) {
     const name = username.trim()
     if (name === user) {
       message.info('이미 선택된 사용자예요')
@@ -53,11 +88,20 @@ export default function UserSwitcher() {
     }
     setSubmitting(true)
     try {
-      if (switchUser(name)) {
+      const needsPin = await userHasPin(name)
+      if (needsPin && !pin) {
+        setPendingUser(name)
         setAddOpen(false)
         form.resetFields()
-        message.loading({ content: `${name}(으)로 전환 중…`, key: 'user-switch', duration: 0 })
+        pinForm.resetFields()
+        setPinOpen(true)
+        return
       }
+      await performSwitch(name, pin || '')
+      setAddOpen(false)
+      form.resetFields()
+    } catch {
+      /* message shown */
     } finally {
       setSubmitting(false)
     }
@@ -110,14 +154,37 @@ export default function UserSwitcher() {
           form.resetFields()
         }}
         onOk={() => form.submit()}
-        destroyOnClose
+        destroyOnHidden
       >
         <Paragraph type="secondary" style={{ marginBottom: 16 }}>
-          파트너 이름을 입력하면 그 사람 기록으로 바뀝니다. 각자 데이터는 Firebase에 따로 저장돼요.
+          파트너 이름을 입력하면 그 사람 기록으로 바뀝니다. PIN이 설정된 사용자는 PIN이 필요합니다.
         </Paragraph>
         <Form form={form} layout="vertical" onFinish={handleAddUser} requiredMark={false}>
           <Form.Item name="username" rules={USERNAME_RULES}>
             <Input placeholder="예: 파트너 이름" autoFocus autoComplete="username" />
+          </Form.Item>
+          <Form.Item name="pin" label="PIN (설정된 경우)">
+            <Input.Password inputMode="numeric" maxLength={8} placeholder="4~8자리 숫자" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`${pendingUser} PIN 입력`}
+        open={pinOpen}
+        okText="전환"
+        cancelText="취소"
+        confirmLoading={submitting}
+        onCancel={() => {
+          setPinOpen(false)
+          setPendingUser('')
+        }}
+        onOk={() => pinForm.submit()}
+        destroyOnHidden
+      >
+        <Form form={pinForm} layout="vertical" onFinish={handlePinSubmit} requiredMark={false}>
+          <Form.Item name="pin" rules={[{ required: true, message: 'PIN을 입력하세요' }]}>
+            <Input.Password inputMode="numeric" maxLength={8} autoFocus placeholder="PIN" />
           </Form.Item>
         </Form>
       </Modal>

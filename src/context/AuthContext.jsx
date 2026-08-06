@@ -6,6 +6,7 @@ import {
   getKnownUsers,
   addKnownUser,
   setCurrentUser,
+  verifyUserPin,
 } from '../services/storage'
 
 const AuthContext = createContext(null)
@@ -64,19 +65,28 @@ export function AuthProvider({ children }) {
     }
   }, [user])
 
-  const login = useCallback(async (username) => {
+  const login = useCallback(async (username, pin = '') => {
     const name = username.trim()
+    const result = await verifyUserPin(name, pin)
+    if (!result.ok) {
+      throw new Error('PIN이 올바르지 않습니다.')
+    }
     allowLegacyImportRef.current = true
     setCurrentUser(name)
     addKnownUser(name)
     setKnownUsers(getKnownUsers())
     setUser(name)
+    return { pinSetupRecommended: result.needsSetup }
   }, [])
 
   const switchUser = useCallback(
-    (username) => {
+    async (username, pin = '') => {
       const name = username.trim()
       if (!name || name === user) return false
+      const result = await verifyUserPin(name, pin)
+      if (!result.ok) {
+        throw new Error('PIN이 올바르지 않습니다.')
+      }
       allowLegacyImportRef.current = false
       addKnownUser(name, user)
       setKnownUsers(getKnownUsers())

@@ -13,12 +13,15 @@ export default function LoginPage() {
 
   if (isLoggedIn && !bootstrapping) return <Navigate to="/" replace />
 
-  async function handleFinish({ username }) {
+  async function handleFinish({ username, pin }) {
     const name = username.trim()
     setError('')
     setSubmitting(true)
     try {
-      await login(name)
+      const result = await login(name, pin || '')
+      if (result?.pinSetupRecommended) {
+        sessionStorage.setItem('pin_setup_recommended', '1')
+      }
     } catch (err) {
       setError(err.message || '로그인 중 오류가 발생했습니다')
     } finally {
@@ -33,7 +36,7 @@ export default function LoginPage() {
           운동 트래커
         </Title>
         <Paragraph type="secondary" style={{ textAlign: 'center', marginBottom: 24 }}>
-          사용자 이름을 입력하세요
+          사용자 이름과 PIN을 입력하세요
         </Paragraph>
 
         <Form form={form} layout="vertical" onFinish={handleFinish} requiredMark={false}>
@@ -48,20 +51,30 @@ export default function LoginPage() {
           >
             <Input size="large" placeholder="사용자 이름 (예: 보섭)" autoFocus autoComplete="username" />
           </Form.Item>
+          <Form.Item
+            name="pin"
+            extra="PIN을 설정한 사용자는 필수 · 처음이면 비워두고 시작해도 됩니다"
+          >
+            <Input.Password
+              size="large"
+              placeholder="PIN (4~8자리 숫자)"
+              inputMode="numeric"
+              maxLength={8}
+              autoComplete="current-password"
+            />
+          </Form.Item>
           <Button type="primary" htmlType="submit" size="large" block loading={submitting}>
             시작하기
           </Button>
         </Form>
 
-        {error && (
-          <Alert style={{ marginTop: 16 }} type="error" showIcon message={error} />
-        )}
+        {error && <Alert style={{ marginTop: 16 }} type="error" showIcon message={error} />}
 
         <Alert
           style={{ marginTop: 24 }}
           type="info"
           showIcon
-          message="데이터는 Firebase에 저장됩니다. 예전 로컬 데이터가 있으면 로그인 시 자동 이전됩니다."
+          message="데이터는 클라우드에 저장됩니다. 설정에서 PIN을 등록하면 다른 사람이 내 기록에 접근하기 어려워집니다."
         />
 
         {knownUsers.length > 0 && (

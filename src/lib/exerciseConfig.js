@@ -85,6 +85,32 @@ const FALLBACK_PROFILE = {
   precision: 1,
 }
 
+export const PROFILE_UNIT_OPTIONS = [
+  { value: 'kg', label: '무게 (kg)' },
+  { value: 'level', label: '레벨 (기구)' },
+  { value: 'assist', label: '보조 (kg, 낮을수록 좋음)' },
+  { value: 'cardio', label: '유산소 (속도·시간)' },
+  { value: 'none', label: '횟수만 (PR 없음)' },
+]
+
+export const PROFILE_UNIT_TEMPLATES = {
+  kg: FALLBACK_PROFILE,
+  level: DEFAULT_EXERCISE_PROFILES['플라이'],
+  assist: DEFAULT_EXERCISE_PROFILES['어시스트 풀업'],
+  cardio: DEFAULT_EXERCISE_PROFILES['런닝머신 (평지)'],
+  none: DEFAULT_EXERCISE_PROFILES['복근'],
+}
+
+export function getProfileUnitKey(profile) {
+  if (!profile) return 'kg'
+  return profile.unit || 'kg'
+}
+
+export function buildExerciseProfile(unitKey) {
+  const base = PROFILE_UNIT_TEMPLATES[unitKey] || FALLBACK_PROFILE
+  return { ...base }
+}
+
 export function getExerciseProfile(name, settings) {
   const base = DEFAULT_EXERCISE_PROFILES[name] || FALLBACK_PROFILE
   const custom = settings?.exerciseProfiles?.[name]

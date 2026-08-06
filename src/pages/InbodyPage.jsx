@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react'
-import { App, Button, Card, Form, InputNumber, List, Spin, Typography } from 'antd'
+import { App, Button, Card, Form, InputNumber, List, Modal, Popconfirm, Spin, Typography } from 'antd'
+import { EditOutlined } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
 import DateField from '../components/DateField'
 import { useAuth } from '../context/AuthContext'
-import { addInbody, getInbodyRecords, getLatestInbody } from '../services/storage'
+import {
+  addInbody,
+  deleteInbody,
+  getInbodyRecords,
+  getLatestInbody,
+  updateInbody,
+} from '../services/storage'
 import { displayDate, formatNumber, getTodayString } from '../lib/utils'
 
 const { Text } = Typography
@@ -19,11 +26,12 @@ export default function InbodyPage() {
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState(null)
 
   async function refresh() {
     const [latestRow, rows] = await Promise.all([
       getLatestInbody(user),
-      getInbodyRecords(user, 10),
+      getInbodyRecords(user, 20),
     ])
     setLatest(latestRow)
     setHistory(rows)
@@ -36,6 +44,13 @@ export default function InbodyPage() {
       .finally(() => setLoading(false))
   }, [user])
 
+  function resetForm() {
+    setDate(getTodayString())
+    setWeight(null)
+    setMuscle(null)
+    setBodyFat(null)
+  }
+
   async function handleSave() {
     if (weight == null || muscle == null || bodyFat == null) {
       message.warning('모든 항목을 입력해주세요.')
@@ -44,16 +59,66 @@ export default function InbodyPage() {
     setSaving(true)
     try {
       await addInbody(user, { date, weight, muscleMass: muscle, bodyFat })
-      message.success('인바디 기록이 Firebase에 저장되었습니다!')
-      setWeight(null)
-      setMuscle(null)
-      setBodyFat(null)
+      message.success('인바디 기록이 저장되었습니다!')
+      resetForm()
       await refresh()
     } catch (err) {
       modal.error({ title: '저장 실패', content: err.message })
     } finally {
       setSaving(false)
     }
+  }
+
+  async function handleUpdate() {
+    if (!editing || weight == null || muscle == null || bodyFat == null) {
+      message.warning('모든 항목을 입력해주세요.')
+      return
+    }
+    setSaving(true)
+    try {
+      await updateInbody(user, {
+        ...editing,
+        date,
+        weight,
+        muscleMass: muscle,
+        bodyFat,
+      })
+      message.success('수정되었습니다.')
+      setEditing(null)
+      resetForm()
+      await refresh()
+    } catch (err) {
+      modal.error({ title: '수정 실패', content: err.message })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id) {
+    try {
+      await deleteInbody(user, id)
+      message.success('삭제되었습니다.')
+      if (editing?.id === id) {
+        setEditing(null)
+        resetForm()
+      }
+      await refresh()
+    } catch (err) {
+      modal.error({ title: '삭제 실패', content: err.message })
+    }
+  }
+
+  function openEdit(record) {
+    setEditing(record)
+    setDate(record.date)
+    setWeight(record.weight)
+    setMuscle(record.muscleMass)
+    setBodyFat(record.bodyFat)
+  }
+
+  function cancelEdit() {
+    setEditing(null)
+    resetForm()
   }
 
   return (
@@ -66,14 +131,24 @@ export default function InbodyPage() {
           </div>
         ) : (
           <>
-            <Card title="인바디 기록" style={{ marginBottom: 16 }}>
+            <Card
+              title={editing ? '인바디 수정' : '인바디 기록'}
+              extra={
+                editing ? (
+                  <Button type="link" onClick={cancelEdit}>
+                    취소
+                  </Button>
+                ) : null
+              }
+              style={{ marginBottom: 16 }}
+            >
               <Form layout="vertical">
                 <Form.Item label="측정 날짜">
                   <DateField value={date} onChange={setDate} />
                 </Form.Item>
                 <Form.Item
                   label="체중 (kg)"
-                  extra={latest ? `최근: ${formatNumber(latest.weight)}kg` : undefined}
+                  extra={latest && !editing ? `최근: ${formatNumber(latest.weight)}kg` : undefined}
                 >
                   <InputNumber
                     style={{ width: '100%' }}
@@ -85,7 +160,7 @@ export default function InbodyPage() {
                 </Form.Item>
                 <Form.Item
                   label="골격근량 (kg)"
-                  extra={latest ? `최근: ${formatNumber(latest.muscleMass)}kg` : undefined}
+                  extra={latest && !editing ? `최근: ${formatNumber(latest.muscleMass)}kg` : undefined}
                 >
                   <InputNumber
                     style={{ width: '100%' }}
@@ -97,7 +172,7 @@ export default function InbodyPage() {
                 </Form.Item>
                 <Form.Item
                   label="체지방률 (%)"
-                  extra={latest ? `최근: ${formatNumber(latest.bodyFat)}%` : undefined}
+                  extra={latest && !editing ? `최근: ${formatNumber(latest.bodyFat)}%` : undefined}
                 >
                   <InputNumber
                     style={{ width: '100%' }}
@@ -107,8 +182,14 @@ export default function InbodyPage() {
                     onChange={setBodyFat}
                   />
                 </Form.Item>
-                <Button type="primary" size="large" block loading={saving} onClick={handleSave}>
-                  인바디 저장하기
+                <Button
+                  type="primary"
+                  size="large"
+                  block
+                  loading={saving}
+                  onClick={editing ? handleUpdate : handleSave}
+                >
+                  {editing ? '수정 저장' : '저장하기'}
                 </Button>
               </Form>
             </Card>
@@ -132,7 +213,31 @@ export default function InbodyPage() {
                     )
                   }
                   return (
-                    <List.Item>
+                    <List.Item
+                      actions={[
+                        <Button
+                          key="edit"
+                          type="link"
+                          size="small"
+                          icon={<EditOutlined />}
+                          onClick={() => openEdit(record)}
+                        >
+                          수정
+                        </Button>,
+                        <Popconfirm
+                          key="delete"
+                          title="이 인바디 기록을 삭제할까요?"
+                          okText="삭제"
+                          cancelText="취소"
+                          okButtonProps={{ danger: true }}
+                          onConfirm={() => handleDelete(record.id)}
+                        >
+                          <Button type="link" size="small" danger>
+                            삭제
+                          </Button>
+                        </Popconfirm>,
+                      ]}
+                    >
                       <List.Item.Meta
                         title={displayDate(record.date)}
                         description={

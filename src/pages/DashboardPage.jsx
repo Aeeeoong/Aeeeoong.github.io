@@ -9,30 +9,41 @@ import {
   Empty,
   Flex,
   List,
+  Progress,
   Row,
   Space,
   Spin,
   Statistic,
+  Tag,
   Typography,
 } from 'antd'
 import { LeftOutlined, RightOutlined } from '@ant-design/icons'
 import { PageHeader } from '../components/Layout'
 import OnboardingModal from '../components/OnboardingModal'
 import { useAuth } from '../context/AuthContext'
-import { getLatestInbody, getInbodyRecords, getSettings, getWorkouts } from '../services/storage'
+import {
+  getLatestInbody,
+  getInbodyRecords,
+  getPartnerSummary,
+  getRecentWorkouts,
+  getSettings,
+  getWorkoutsForMonth,
+} from '../services/storage'
 import {
   formatWeekRangeLabel,
+  getDashboardHighlights,
   getMotivationBanner,
   getWeeklySummary,
 } from '../lib/workoutInsights'
-import { displayDate, formatNumber } from '../lib/utils'
+import { formatPersonalBestValue } from '../lib/exerciseConfig'
+import { displayDate, formatNumber, getRelativeTime } from '../lib/utils'
 import { hasSeenOnboarding } from '../lib/onboarding'
 import dayjs from '../lib/dayjsConfig'
 
 const { Text, Paragraph } = Typography
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const { user, knownUsers } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { modal } = App.useApp()
@@ -43,6 +54,8 @@ export default function DashboardPage() {
   const [inbodyRecords, setInbodyRecords] = useState([])
   const [settings, setSettings] = useState(null)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
+  const [partnerSummary, setPartnerSummary] = useState(null)
+  const [calendarWorkouts, setCalendarWorkouts] = useState([])
   const [calendarMonth, setCalendarMonth] = useState(() => dayjs().startOf('month'))
 
   function shiftCalendarMonth(base, deltaMonths) {
@@ -54,17 +67,20 @@ export default function DashboardPage() {
     async function load() {
       setLoading(true)
       try {
-        const [inbody, all, records, s] = await Promise.all([
+        const partnerName = knownUsers.find((name) => name !== user)
+        const [inbody, all, records, s, partner] = await Promise.all([
           getLatestInbody(user),
-          getWorkouts(user),
+          getRecentWorkouts(user, 100),
           getInbodyRecords(user, 20),
           getSettings(user),
+          partnerName ? getPartnerSummary(partnerName) : Promise.resolve(null),
         ])
         if (cancelled) return
         setLatestInbody(inbody)
         setWorkouts(all)
         setInbodyRecords(records)
         setSettings(s)
+        setPartnerSummary(partner)
         setRecent(all.slice(0, 5))
       } catch (err) {
         modal.error({ title: '데이터 로드 실패', content: err.message })
@@ -76,7 +92,14 @@ export default function DashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [user, modal])
+  }, [user, knownUsers, modal])
+
+  useEffect(() => {
+    if (!user) return
+    getWorkoutsForMonth(user, calendarMonth.year(), calendarMonth.month() + 1)
+      .then(setCalendarWorkouts)
+      .catch(() => setCalendarWorkouts([]))
+  }, [user, calendarMonth])
 
   useEffect(() => {
     if (loading || !user) return
@@ -92,14 +115,18 @@ export default function DashboardPage() {
 
   const byDate = useMemo(() => {
     const map = {}
-    workouts.forEach((w) => {
+    const seen = new Set()
+    ;[...workouts, ...calendarWorkouts].forEach((w) => {
+      if (seen.has(w.id)) return
+      seen.add(w.id)
       if (!map[w.date]) map[w.date] = []
       map[w.date].push(w)
     })
     return map
-  }, [workouts])
+  }, [workouts, calendarWorkouts])
 
   const banner = useMemo(() => getMotivationBanner(workouts), [workouts])
+  const highlights = useMemo(() => getDashboardHighlights(workouts, settings), [workouts, settings])
   const weekly = useMemo(
     () => getWeeklySummary(workouts, inbodyRecords, settings),
     [workouts, inbodyRecords, settings],
@@ -162,6 +189,64 @@ export default function DashboardPage() {
                 </Col>
               </Row>
             </Card>
+
+            <Card size="small" className="dashboard-highlights-card" style={{ marginBottom: 16 }}>
+              <Row gutter={[12, 12]} align="middle">
+                <Col xs={24} sm={12}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    이번 주 목표 ({highlights.weekCount}/{highlights.weekGoal}회)
+                  </Text>
+                  <Progress percent={highlights.weekProgress} size="small" style={{ marginTop: 4 }} />
+                  {highlights.lastRoutineLine && (
+                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 6 }}>
+                      {highlights.lastRoutineLine}
+                    </Text>
+                  )}
+                </Col>
+                <Col xs={24} sm={12}>
+                  {highlights.recentPrs.length > 0 ? (
+                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        최근 PR
+                      </Text>
+                      {highlights.recentPrs.map((pr) => (
+                        <Tag key={pr.name} color="gold">
+                          {pr.name}{' '}
+                          {formatPersonalBestValue(pr.value, pr.profile)} · {displayDate(pr.date)}
+                        </Tag>
+                      ))}
+                    </Space>
+                  ) : (
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      PR 기록을 쌓아보세요
+                    </Text>
+                  )}
+                </Col>
+              </Row>
+            </Card>
+
+            {partnerSummary && (
+              <Card
+                size="small"
+                className="dashboard-partner-card"
+                title={`${partnerSummary.username} 요약`}
+                style={{ marginBottom: 16 }}
+              >
+                <Space direction="vertical" size={4}>
+                  <Text>이번 주 {partnerSummary.weekCount}회 운동</Text>
+                  {partnerSummary.lastWorkout ? (
+                    <Text type="secondary" style={{ fontSize: 13 }}>
+                      마지막: {displayDate(partnerSummary.lastWorkout.date)} ·{' '}
+                      {partnerSummary.lastWorkout.type} ({partnerSummary.lastWorkout.exerciseCount}개)
+                      {' · '}
+                      {getRelativeTime(partnerSummary.lastWorkout.date)}
+                    </Text>
+                  ) : (
+                    <Text type="secondary">아직 기록이 없어요</Text>
+                  )}
+                </Space>
+              </Card>
+            )}
 
             <Card
               title="이번 주 요약"

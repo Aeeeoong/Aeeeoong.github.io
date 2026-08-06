@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   Empty,
+  Input,
   Popconfirm,
   Select,
   Space,
@@ -29,6 +30,8 @@ export default function HistoryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const dateFilter = searchParams.get('date') || ''
   const [filter, setFilter] = useState('')
+  const [search, setSearch] = useState('')
+  const [monthFilter, setMonthFilter] = useState('')
   const [routines, setRoutines] = useState([])
   const [settings, setSettings] = useState(null)
   const [workouts, setWorkouts] = useState([])
@@ -59,9 +62,24 @@ export default function HistoryPage() {
   }, [user, filter])
 
   const filteredWorkouts = useMemo(() => {
-    if (!dateFilter) return workouts
-    return workouts.filter((w) => w.date === dateFilter)
-  }, [workouts, dateFilter])
+    let list = workouts
+    if (dateFilter) list = list.filter((w) => w.date === dateFilter)
+    if (monthFilter) list = list.filter((w) => w.date.startsWith(monthFilter))
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      list = list.filter((w) =>
+        (w.exercises || []).some((ex) => ex.name?.toLowerCase().includes(q)),
+      )
+    }
+    return list
+  }, [workouts, dateFilter, monthFilter, search])
+
+  const monthOptions = useMemo(() => {
+    const months = new Set(workouts.map((w) => w.date.slice(0, 7)))
+    return [...months]
+      .sort((a, b) => b.localeCompare(a))
+      .map((m) => ({ value: m, label: `${m.slice(0, 4)}년 ${Number(m.slice(5))}월` }))
+  }, [workouts])
 
   async function handleDelete(id) {
     try {
@@ -162,16 +180,34 @@ export default function HistoryPage() {
         )}
 
         <Card style={{ marginBottom: 16 }}>
-          <Select
-            style={{ width: '100%' }}
-            size="large"
-            value={filter}
-            onChange={setFilter}
-            options={[
-              { value: '', label: '전체 루틴' },
-              ...routines.map((name) => ({ value: name, label: name })),
-            ]}
-          />
+          <Space direction="vertical" style={{ width: '100%' }} size={12}>
+            <Select
+              style={{ width: '100%' }}
+              size="large"
+              value={filter}
+              onChange={setFilter}
+              options={[
+                { value: '', label: '전체 루틴' },
+                ...routines.map((name) => ({ value: name, label: name })),
+              ]}
+            />
+            <Input
+              size="large"
+              allowClear
+              placeholder="기구명 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Select
+              style={{ width: '100%' }}
+              size="large"
+              allowClear
+              placeholder="월별 필터"
+              value={monthFilter || undefined}
+              onChange={(v) => setMonthFilter(v || '')}
+              options={monthOptions}
+            />
+          </Space>
         </Card>
 
         {loading ? (
@@ -241,6 +277,7 @@ export default function HistoryPage() {
         workout={editing}
         settings={settings}
         user={user}
+        allWorkouts={workouts}
         onClose={() => setEditing(null)}
         onSaved={() => load(filter)}
       />

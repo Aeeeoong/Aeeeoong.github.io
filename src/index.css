@@ -1246,6 +1246,28 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .summary-card .ant-col {
     text-align: center;
   }
+
+  /* 간편 탭 — 무게 1줄, 회·세트 넓게 */
+  .simple-exercise-inputs {
+    flex-wrap: wrap;
+    gap: 10px 8px;
+  }
+
+  .simple-exercise-inputs .field-weight {
+    flex: 1 1 100%;
+  }
+
+  .simple-exercise-inputs .field-reps,
+  .simple-exercise-inputs .field-sets {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+  }
+
+  .simple-exercise-inputs .field-reps .ant-input-number-input,
+  .simple-exercise-inputs .field-sets .ant-input-number-input {
+    text-align: center;
+    padding-right: 11px;
+  }
 }
 .login-container .ant-card {
   width: 100%;

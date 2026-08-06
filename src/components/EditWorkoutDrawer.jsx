@@ -220,6 +220,7 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
                 <Form.Item label="회" className="field-reps" style={{ marginBottom: 8 }}>
                   <InputNumber
                     style={{ width: '100%' }}
+                    controls={false}
                     value={ex.reps}
                     onChange={(v) => updateExercise(index, { reps: v })}
                   />
@@ -227,6 +228,7 @@ export default function EditWorkoutDrawer({ open, workout, settings, user, onClo
                 <Form.Item label="세트" className="field-sets" style={{ marginBottom: 8 }}>
                   <InputNumber
                     style={{ width: '100%' }}
+                    controls={false}
                     value={ex.sets}
                     onChange={(v) => updateExercise(index, { sets: v })}
                   />

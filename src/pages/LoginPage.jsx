@@ -35,7 +35,7 @@ export default function LoginPage() {
         <Title level={2} style={{ textAlign: 'center', marginBottom: 4, color: '#a5b4fc' }}>
           운동 트래커
         </Title>
-        <Paragraph type="secondary" style={{ textAlign: 'center', marginBottom: 24 }}>
+        <Paragraph type="secondary" style={{ textAlign: 'center', marginBottom: 16 }}>
           사용자 이름과 PIN을 입력하세요
         </Paragraph>
 
@@ -68,17 +68,17 @@ export default function LoginPage() {
           </Button>
         </Form>
 
-        {error && <Alert style={{ marginTop: 16 }} type="error" showIcon message={error} />}
+        {error && <Alert style={{ marginTop: 12 }} type="error" showIcon message={error} />}
 
         <Alert
-          style={{ marginTop: 24 }}
+          style={{ marginTop: 14 }}
           type="info"
           showIcon
           message="데이터는 클라우드에 저장됩니다. 설정에서 PIN을 등록하면 다른 사람이 내 기록에 접근하기 어려워집니다."
         />
 
         {knownUsers.length > 0 && (
-          <div style={{ marginTop: 24, textAlign: 'center' }}>
+          <div style={{ marginTop: 14, textAlign: 'center' }}>
             <Text type="secondary">등록된 사용자</Text>
             <div style={{ marginTop: 8 }}>
               <Space wrap size={[8, 8]} style={{ justifyContent: 'center' }}>

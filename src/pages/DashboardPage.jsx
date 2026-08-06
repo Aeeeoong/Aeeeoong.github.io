@@ -27,6 +27,7 @@ import {
 } from '../lib/workoutInsights'
 import { displayDate, formatNumber } from '../lib/utils'
 import { hasSeenOnboarding } from '../lib/onboarding'
+import dayjs from '../lib/dayjsConfig'
 
 const { Text, Paragraph } = Typography
 
@@ -42,6 +43,7 @@ export default function DashboardPage() {
   const [inbodyRecords, setInbodyRecords] = useState([])
   const [settings, setSettings] = useState(null)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(() => dayjs())
 
   useEffect(() => {
     let cancelled = false
@@ -182,12 +184,14 @@ export default function DashboardPage() {
               <Calendar
                 fullscreen={false}
                 mode="month"
-                headerRender={({ value, onChange }) => (
+                value={calendarMonth}
+                onPanelChange={(date) => setCalendarMonth(date)}
+                headerRender={({ value }) => (
                   <Flex justify="space-between" align="center" style={{ padding: '4px 0 12px' }}>
                     <Button
                       type="text"
                       icon={<LeftOutlined />}
-                      onClick={() => onChange(value.clone().subtract(1, 'month'))}
+                      onClick={() => setCalendarMonth(value.clone().subtract(1, 'month'))}
                     />
                     <Text strong>
                       {value.year()}년 {value.month() + 1}월
@@ -195,7 +199,7 @@ export default function DashboardPage() {
                     <Button
                       type="text"
                       icon={<RightOutlined />}
-                      onClick={() => onChange(value.clone().add(1, 'month'))}
+                      onClick={() => setCalendarMonth(value.clone().add(1, 'month'))}
                     />
                   </Flex>
                 )}

@@ -17,14 +17,13 @@ export default function ProtectedRoute() {
 
   if (!isLoggedIn) return <Navigate to="/login" replace />
 
-  return (
-    <>
-      {bootstrapping && (
-        <div className="bootstrap-overlay">
-          <Spin size="large" tip="사용자 데이터 불러오는 중…" />
-        </div>
-      )}
-      <Outlet key={user} />
-    </>
-  )
+  if (bootstrapping) {
+    return (
+      <div className="bootstrap-overlay">
+        <Spin size="large" tip="사용자 데이터 불러오는 중…" />
+      </div>
+    )
+  }
+
+  return <Outlet key={user} />
 }

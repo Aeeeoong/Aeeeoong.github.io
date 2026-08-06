@@ -760,9 +760,9 @@ export function getWorkoutSessionHighlight(workout, allWorkouts, settings = null
 
   const completion = getCompletionRate(workout.exercises)
   const tags = []
-  if (prs.length > 0) tags.push({ key: 'pr', label: `🏆 PR ${prs.length}`, color: 'gold' })
+  if (prs.length > 0) tags.push({ key: 'pr', label: `🏆 역대 최고 ${prs.length}개`, color: 'gold' })
   if (improvements.length > 0) {
-    tags.push({ key: 'up', label: `📈 +${improvements.length}`, color: 'success' })
+    tags.push({ key: 'up', label: `📈 상승 ${improvements.length}개`, color: 'success' })
   }
   if (completion.percent === 100 && completion.total > 0) {
     tags.push({ key: 'done', label: '✓ 완료', color: 'processing' })

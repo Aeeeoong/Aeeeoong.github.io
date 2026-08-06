@@ -898,6 +898,52 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   gap: 0.25rem;
 }
 
+/* 설정 — 루틴 내 기구 목록 */
+.settings-exercise-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-exercise-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-exercise-item:last-child {
+  border-bottom: none;
+}
+
+.settings-exercise-name {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.settings-exercise-actions {
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+@media (min-width: 769px) {
+  .settings-exercise-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .settings-exercise-name {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .btn-icon-small {
   padding: 0.25rem 0.5rem;
   border: 1px solid var(--border);
@@ -1247,26 +1293,79 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     text-align: center;
   }
 
-  /* 간편 탭 — 무게 1줄, 회·세트 넓게 */
+  /* 간편 탭 — 무게 1줄, 회·세트 2열 + 라벨 너비 통일 */
   .simple-exercise-inputs {
-    flex-wrap: wrap;
-    gap: 10px 8px;
+    --simple-field-label-width: 2.75rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 10px;
+    row-gap: 10px;
+  }
+
+  .simple-exercise-inputs .ant-form-item {
+    margin-bottom: 0 !important;
   }
 
   .simple-exercise-inputs .field-weight {
-    flex: 1 1 100%;
+    grid-column: 1 / -1;
   }
 
-  .simple-exercise-inputs .field-reps,
-  .simple-exercise-inputs .field-sets {
-    flex: 1 1 calc(50% - 4px);
+  .simple-exercise-inputs .ant-form-item-row {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .simple-exercise-inputs .ant-form-item-label {
+    flex: 0 0 var(--simple-field-label-width) !important;
+    max-width: var(--simple-field-label-width);
+    padding: 0 !important;
+    text-align: right;
+  }
+
+  .simple-exercise-inputs .ant-form-item-label > label {
+    font-size: 14px;
+    height: auto;
+    white-space: nowrap;
+  }
+
+  .simple-exercise-inputs .ant-form-item-label > label::after {
+    display: none !important;
+  }
+
+  .simple-exercise-inputs .ant-form-item-control {
+    flex: 1 !important;
     min-width: 0;
+    max-width: none !important;
   }
 
   .simple-exercise-inputs .field-reps .ant-input-number-input,
   .simple-exercise-inputs .field-sets .ant-input-number-input {
     text-align: center;
     padding-right: 11px;
+  }
+
+  /* 설정 — 루틴 카드 헤더 */
+  .settings-routine-card .ant-card-head {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .settings-routine-card .ant-card-head-wrapper {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .settings-routine-card .ant-card-extra {
+    margin-inline-start: 0 !important;
+    padding-inline-start: 0 !important;
+    width: 100%;
+  }
+
+  .settings-routine-card .ant-card-extra .ant-space {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 .login-container .ant-card {

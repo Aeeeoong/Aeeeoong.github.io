@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   Input,
-  List,
   Modal,
   Popconfirm,
   Space,
@@ -209,6 +208,7 @@ export default function SettingsPage() {
                   key={name}
                   size="small"
                   type="inner"
+                  className="settings-routine-card"
                   title={
                     <span>
                       {name}{' '}
@@ -270,69 +270,67 @@ export default function SettingsPage() {
                     </Space>
                   }
                 >
-                  <List
-                    size="small"
-                    dataSource={exercises}
-                    locale={{ emptyText: '운동이 없습니다' }}
-                    renderItem={(ex, exIndex) => (
-                      <List.Item
-                        actions={[
-                          <Button
-                            key="up"
-                            type="text"
-                            size="small"
-                            icon={<ArrowUpOutlined />}
-                            disabled={exIndex === 0}
-                            onClick={async () => {
-                              const next = structuredClone(settings)
-                              const list = next.exercises[name]
-                              ;[list[exIndex - 1], list[exIndex]] = [list[exIndex], list[exIndex - 1]]
-                              await persist(next)
-                            }}
-                          />,
-                          <Button
-                            key="down"
-                            type="text"
-                            size="small"
-                            icon={<ArrowDownOutlined />}
-                            disabled={exIndex === exercises.length - 1}
-                            onClick={async () => {
-                              const next = structuredClone(settings)
-                              const list = next.exercises[name]
-                              ;[list[exIndex + 1], list[exIndex]] = [list[exIndex], list[exIndex + 1]]
-                              await persist(next)
-                            }}
-                          />,
-                          <Button
-                            key="edit"
-                            type="text"
-                            size="small"
-                            icon={<EditOutlined />}
-                            onClick={() => {
-                              setExerciseName(ex)
-                              setExerciseModal({ mode: 'edit', routine: name, index: exIndex })
-                            }}
-                          />,
-                          <Popconfirm
-                            key="del"
-                            title={`"${ex}" 삭제할까요?`}
-                            okText="삭제"
-                            cancelText="취소"
-                            okButtonProps={{ danger: true }}
-                            onConfirm={async () => {
-                              const next = structuredClone(settings)
-                              next.exercises[name].splice(exIndex, 1)
-                              await persist(next)
-                            }}
-                          >
-                            <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-                          </Popconfirm>,
-                        ]}
-                      >
-                        {ex}
-                      </List.Item>
-                    )}
-                  />
+                  {exercises.length === 0 ? (
+                    <Text type="secondary" style={{ display: 'block', padding: '8px 0' }}>
+                      운동이 없습니다
+                    </Text>
+                  ) : (
+                    <div className="settings-exercise-list">
+                      {exercises.map((ex, exIndex) => (
+                        <div key={ex} className="settings-exercise-item">
+                          <div className="settings-exercise-name">{ex}</div>
+                          <div className="settings-exercise-actions">
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<ArrowUpOutlined />}
+                              disabled={exIndex === 0}
+                              onClick={async () => {
+                                const next = structuredClone(settings)
+                                const list = next.exercises[name]
+                                ;[list[exIndex - 1], list[exIndex]] = [list[exIndex], list[exIndex - 1]]
+                                await persist(next)
+                              }}
+                            />
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<ArrowDownOutlined />}
+                              disabled={exIndex === exercises.length - 1}
+                              onClick={async () => {
+                                const next = structuredClone(settings)
+                                const list = next.exercises[name]
+                                ;[list[exIndex + 1], list[exIndex]] = [list[exIndex], list[exIndex + 1]]
+                                await persist(next)
+                              }}
+                            />
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<EditOutlined />}
+                              onClick={() => {
+                                setExerciseName(ex)
+                                setExerciseModal({ mode: 'edit', routine: name, index: exIndex })
+                              }}
+                            />
+                            <Popconfirm
+                              title={`"${ex}" 삭제할까요?`}
+                              okText="삭제"
+                              cancelText="취소"
+                              okButtonProps={{ danger: true }}
+                              onConfirm={async () => {
+                                const next = structuredClone(settings)
+                                next.exercises[name].splice(exIndex, 1)
+                                await persist(next)
+                              }}
+                            >
+                              <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                            </Popconfirm>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <Button
                     type="dashed"
                     block
